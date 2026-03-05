@@ -71,7 +71,7 @@ export default function AuthenticatedLayout({ children }) {
                         </button>
                         <div className="ml-3 font-semibold text-sm">My App</div>
                     </div>
-                    <main className="p-6">{children}</main>
+                    <main>{children}</main>
                 </div>
             </div>
         </div>

@@ -1,12 +1,11 @@
 import React from "react";
-import { Link, usePage } from "@inertiajs/react";
+import { Link, usePage, router } from "@inertiajs/react";
 import logoImage from "../../images/logo.png";
 
 const navItems = [
     { label: "Home", href: "/dashboard" },
     { label: "Profile", href: "/profile" },
     { label: "Settings", href: "/settings" },
-    { label: "Logout", href: "/logout" },
 ];
 
 function isActive(currentUrl, href) {
@@ -56,8 +55,8 @@ export default function Sidebar({ onClose }) {
                             className={[
                                 "block rounded-lg px-3 py-3 text-sm transition",
                                 active
-                                    ? "bg-gray-900 text-white"
-                                    : "text-gray-700 hover:bg-gray-100",
+                                    ? "bg-blue-700 text-white"
+                                    : "text-blue-700 hover:bg-blue-100",
                             ].join(" ")}
                         >
                             {item.label}
@@ -68,7 +67,13 @@ export default function Sidebar({ onClose }) {
 
             {/* Footer */}
             <div className="p-3 border-t">
-                <div className="text-xs text-gray-500">v1.0</div>
+                <button
+                    type="button"
+                    onClick={() => router.post("/logout")}
+                    className="block rounded-lg px-3 py-3 my-3 text-sm transition bg-red-700 text-white hover:bg-red-500 w-full text-center"
+                >
+                    Logout
+                </button>
             </div>
         </aside>
     );
