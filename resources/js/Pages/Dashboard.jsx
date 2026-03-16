@@ -1,5 +1,7 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head } from "@inertiajs/react";
+import HeaderSearch from "@/Components/HeaderSearch";
+import AppsCardList from "@/Components/AppsCardList";
 
 export default function Dashboard() {
     return (
@@ -12,15 +14,13 @@ export default function Dashboard() {
         >
             <Head title="Dashboard" />
 
-            <div className="py-6">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-4">
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900">
-                            You're logged in!
-                        </div>
-                    </div>
-                </div>
+            <div className="pb-3">
+                <HeaderSearch />
             </div>
+            <div className="py-3 px-8">
+                <AppsCardList />
+            </div>
+
         </AuthenticatedLayout>
     );
 }
