@@ -37,19 +37,6 @@ export default function Navbar({ user }) {
 
 				<div className="flex items-center gap-3 sm:gap-4 md:gap-7">
 					<NotificationDropdown />
-					{/* <div className="relative h-11 w-11 overflow-hidden rounded-full bg-blue-500 text-white">
-						{avatarUrl ? (
-							<img
-								src={avatarUrl}
-								alt={user?.name || "User avatar"}
-								className="h-full w-full object-cover"
-							/>
-						) : (
-							<div className="flex h-full w-full items-center justify-center text-sm font-semibold">
-								{getInitials(user?.name)}
-							</div>
-						)}
-					</div> */}
 					<AvatarDropdown />
 				</div>
 			</div>

@@ -2,6 +2,7 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head } from "@inertiajs/react";
 import HeaderSearch from "@/Components/HeaderSearch";
 import AppsCardList from "@/Components/AppsCardList";
+import AppsList from "@/Components/AppsList";
 
 export default function Dashboard() {
     return (
@@ -17,10 +18,12 @@ export default function Dashboard() {
             <div className="pb-3">
                 <HeaderSearch />
             </div>
-            <div className="py-3 px-8">
+            <div className="py-4 px-8">
                 <AppsCardList />
             </div>
-
+            <div className="py-4 px-4">
+                <AppsList />
+            </div>
         </AuthenticatedLayout>
     );
 }

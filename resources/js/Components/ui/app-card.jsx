@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export default function AppCard({
 	title = "Nama App",
-	division = "Divisi",
+	division = "HRD",
 	description = "Write an amazing description in this dedicated card section. Each word counts.",
 	initials = "MJ",
 	avatarSrc,
@@ -11,7 +11,7 @@ export default function AppCard({
 	return (
 		<article
 			className={cn(
-				"w-full max-w-[328px] rounded-[16px] bg-white px-[18px] py-[16px] shadow-[0px_0px_1px_0px_rgba(12,26,75,0.24),0px_3px_8px_0px_rgba(50,50,71,0.05)]",
+				"w-full max-w-[320px] rounded-[16px] bg-white px-[18px] py-[16px] shadow-[0px_0px_1px_0px_rgba(12,26,75,0.24),0px_3px_8px_0px_rgba(50,50,71,0.05)]",
 				className
 			)}
 		>
