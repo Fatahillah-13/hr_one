@@ -95,7 +95,7 @@ const DropdownMenu = ({ children, trigger }) => {
             </div>
             {isOpen && (
                 <div
-                    className="origin-top-right absolute right-0 mt-2 w-80 rounded-xl shadow-xl bg-white dark:bg-zinc-900 ring-1 ring-black ring-opacity-5 focus:outline-none z-50 animate-in fade-in-0 zoom-in-95"
+                    className="origin-top-right absolute right-0 mt-2 w-[calc(100vw-1rem)] sm:w-80 rounded-xl shadow-xl bg-white dark:bg-zinc-900 ring-1 ring-black ring-opacity-5 focus:outline-none z-50 animate-in fade-in-0 zoom-in-95"
                     role="menu"
                     aria-orientation="vertical"
                 >
@@ -248,7 +248,7 @@ export default function NotificationDropdown() {
                     )}
                 </div>
 
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-[60vh] sm:max-h-96 overflow-y-auto">
                     {notifications.length > 0 ? (
                         notifications.map((notification) => (
                             <NotificationItem
