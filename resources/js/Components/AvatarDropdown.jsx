@@ -8,6 +8,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Link } from "@inertiajs/react";
 
 export function AvatarDropdown() {
     return (
@@ -25,14 +26,22 @@ export function AvatarDropdown() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-32">
                 <DropdownMenuGroup>
-                    <DropdownMenuItem>Profile</DropdownMenuItem>
-                    <DropdownMenuItem>Billing</DropdownMenuItem>
-                    <DropdownMenuItem>Settings</DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href={route("profile.edit")}>Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href="/billing">Billing</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href="/settings">Settings</Link>
+                    </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem variant="destructive">
-                        Log out
+                    <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
+                        <Link href={route("logout")} method="post" as="button">
+                            Log out
+                        </Link>
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
             </DropdownMenuContent>
