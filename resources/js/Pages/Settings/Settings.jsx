@@ -99,6 +99,8 @@ export default function Settings({ users, roles, divisions }) {
         title: "Home",
         icon: HomeIcon
     }, {
+        type: "separator"
+    },{
         title: "Users",
         icon: UserIcon
     }, {
@@ -115,11 +117,11 @@ export default function Settings({ users, roles, divisions }) {
         switch (activeTab) {
             case 0:
                 return <h1>Hello, Im in Home Settings</h1>;
-            case 1:
-                return <IndexUsermanagement users={users} roles={roles} divisions={divisions} />;
             case 2:
+                return <IndexUsermanagement users={users} roles={roles} divisions={divisions} />;
+            case 3:
                 return <h1>Hello, Im in Messages Settings</h1>;
-            case 4:
+            case 5:
                 return <h1>Hello, Im in App Settings</h1>;
             default:
                 return <h1>Select a tab</h1>;
