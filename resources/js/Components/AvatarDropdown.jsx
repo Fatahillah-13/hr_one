@@ -27,13 +27,16 @@ export function AvatarDropdown() {
             <DropdownMenuContent className="w-32">
                 <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
+                        <Link href={route("dashboard")}>Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                         <Link href={route("profile.edit")}>Profile</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                         <Link href="/billing">Billing</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                        <Link href="/settings">Settings</Link>
+                        <Link href={route("settings")}>Settings</Link>
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

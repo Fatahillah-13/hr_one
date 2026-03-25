@@ -9,8 +9,8 @@ import {
 	Users,
 } from "lucide-react";
 
-import AppMiniCard from "@/Components/ui/app-mini-card";
 import { cn } from "@/lib/utils";
+import AppMiniCard from "@/Components/ui/app-mini-card";
 
 const defaultTabs = [
 	{ id: "hrd", label: "HRD", icon: LayoutGrid },
@@ -102,7 +102,7 @@ export default function AppsList({
 				>
 					{filteredApps.length > 0 ? (
 						filteredApps.map((app) => (
-							<AppMiniCard
+								<AppMiniCard
 								key={app.id}
 								title={app.title}
 								initials={app.initials}
