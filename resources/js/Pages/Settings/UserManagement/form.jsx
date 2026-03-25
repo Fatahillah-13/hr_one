@@ -1,4 +1,15 @@
 import { useForm } from '@inertiajs/react'
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function Form({ user = null, roles = [], divisions = [], submitLabel = 'Simpan', onSubmit }) {
     const { data, setData, processing, errors } = useForm({
@@ -19,8 +30,8 @@ export default function Form({ user = null, roles = [], divisions = [], submitLa
     return (
         <form onSubmit={submit} className="space-y-4">
             <div>
-                <label>Nama</label>
-                <input
+                <Label>Nama</Label>
+                <Input
                     type="text"
                     value={data.name}
                     onChange={(e) => setData('name', e.target.value)}
@@ -30,8 +41,8 @@ export default function Form({ user = null, roles = [], divisions = [], submitLa
             </div>
 
             <div>
-                <label>Username</label>
-                <input
+                <Label>Username</Label>
+                <Input
                     type="text"
                     value={data.username}
                     onChange={(e) => setData('username', e.target.value)}
@@ -41,8 +52,8 @@ export default function Form({ user = null, roles = [], divisions = [], submitLa
             </div>
 
             <div>
-                <label>Email</label>
-                <input
+                <Label>Email</Label>
+                <Input
                     type="email"
                     value={data.email}
                     onChange={(e) => setData('email', e.target.value)}
@@ -52,8 +63,8 @@ export default function Form({ user = null, roles = [], divisions = [], submitLa
             </div>
 
             <div>
-                <label>Password {user ? '(kosongkan jika tidak diubah)' : ''}</label>
-                <input
+                <Label>Password {user ? '(kosongkan jika tidak diubah)' : ''}</Label>
+                <Input
                     type="password"
                     value={data.password}
                     onChange={(e) => setData('password', e.target.value)}
@@ -63,49 +74,65 @@ export default function Form({ user = null, roles = [], divisions = [], submitLa
             </div>
 
             <div>
-                <label>Role</label>
-                <select
-                    value={data.role_id}
-                    onChange={(e) => setData('role_id', e.target.value)}
-                    className="w-full border rounded px-3 py-2"
+                <Label>Role</Label>
+                <Select
+                    value={String(data.role_id)}
+                    onValueChange={(value) => setData('role_id', value)}
                 >
-                    <option value="">Pilih role</option>
-                    {roles.map((role) => (
-                        <option key={role.id} value={role.id}>
-                            {role.name}
-                        </option>
-                    ))}
-                </select>
+                    <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Pilih role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectGroup>
+                            {roles.map((role) => (
+                                <SelectItem key={role.id} value={String(role.id)}>
+                                    {role.name}
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
+                    </SelectContent>
+                </Select>
                 {errors.role_id && <div className="text-red-500 text-sm">{errors.role_id}</div>}
             </div>
 
             <div>
-                <label>Division</label>
-                <select
-                    value={data.division_id}
-                    onChange={(e) => setData('division_id', e.target.value)}
-                    className="w-full border rounded px-3 py-2"
+                <Label>Division</Label>
+                <Select
+                    value={String(data.division_id)}
+                    onValueChange={(value) => setData('division_id', value)}
                 >
-                    <option value="">Pilih division</option>
-                    {divisions.map((division) => (
-                        <option key={division.id} value={division.id}>
-                            {division.name}
-                        </option>
-                    ))}
-                </select>
+                    <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Pilih division" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectGroup>
+                            {divisions.map((division) => (
+                                <SelectItem key={division.id} value={String(division.id)}>
+                                    {division.name}
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
+                    </SelectContent>
+                </Select>
                 {errors.division_id && <div className="text-red-500 text-sm">{errors.division_id}</div>}
             </div>
 
             <div>
-                <label>Status</label>
-                <select
+                <Label>Status</Label>
+                <Select
                     value={data.is_active ? '1' : '0'}
-                    onChange={(e) => setData('is_active', e.target.value === '1')}
-                    className="w-full border rounded px-3 py-2"
+                    onValueChange={(value) => setData('is_active', value === '1')}
                 >
-                    <option value="1">Aktif</option>
-                    <option value="0">Nonaktif</option>
-                </select>
+                    <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Pilih status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectGroup>
+                            <SelectItem value="1">Aktif</SelectItem>
+                            <SelectItem value="0">Nonaktif</SelectItem>
+                        </SelectGroup>
+                    </SelectContent>
+                </Select>
             </div>
 
             <button

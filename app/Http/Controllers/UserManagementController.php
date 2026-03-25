@@ -29,11 +29,17 @@ class UserManagementController extends Controller
                 'email' => $user->email,
                 'is_active' => $user->is_active,
                 'last_login_at' => $user->last_login_at,
-                'role' => $user->role?->name,
-                'division' => $user->division?->name,
+                'role' => $user->role ? [
+                    'id' => $user->role->id,
+                    'name' => $user->role->name,
+                ] : null,
+                'division' => $user->division ? [
+                    'id' => $user->division->id,
+                    'name' => $user->division->name,
+                ] : null,
             ]);
 
-        return Inertia::render('Settings/UserManagement/index', [
+        return Inertia::render('Settings/Settings', [
             'users' => $users,
         ]);
     }
@@ -65,7 +71,7 @@ class UserManagementController extends Controller
             'is_active' => $validated['is_active'],
         ]);
 
-        return redirect()->route('user-management.index')->with('success', 'User created successfully.');
+        return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
 
     /**
@@ -121,7 +127,7 @@ class UserManagementController extends Controller
         $user->update($payload);
 
         return redirect()
-            ->route('user-management.index')
+            ->route('settings')
             ->with('success', 'User berhasil diupdate.');
     }
 
@@ -133,7 +139,7 @@ class UserManagementController extends Controller
         $user->delete();
 
         return redirect()
-            ->route('user-management.index')
+            ->route('users.index')
             ->with('success', 'User berhasil dihapus.');
     }
 }

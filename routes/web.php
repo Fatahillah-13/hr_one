@@ -4,7 +4,6 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\UserManagementController;
 
 Route::get('/', function () {
     return Inertia::render('Dashboard', [
@@ -15,14 +14,7 @@ Route::get('/', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Settings
-Route::get('/settings', function () {
-    return Inertia::render('Settings/Settings');
-})->middleware(['auth', 'verified'])->name('settings');
-
-Route::middleware(['auth'])->group(function () {
-    Route::resource('users', UserManagementController::class);
-});
+require __DIR__.'/settings.php';
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
