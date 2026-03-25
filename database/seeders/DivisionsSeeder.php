@@ -14,12 +14,14 @@ class DivisionsSeeder extends Seeder
     public function run(): void
     {
         Division::insert([
+            ['name' => 'HRD Master', 'slug' => 'hrd'],
             ['name' => 'Human Industrial', 'slug' => 'hi'],
             ['name' => 'Payroll', 'slug' => 'payroll'],
             ['name' => 'IT', 'slug' => 'it'],
             ['name' => 'OD Training', 'slug' => 'od-training'],
             ['name' => 'Recruitment', 'slug' => 'recruitment'],
             ['name' => 'Counseling', 'slug' => 'counseling'],
+            ['name' => 'Translator', 'slug' => 'translator'],
         ]);
     }
 }
