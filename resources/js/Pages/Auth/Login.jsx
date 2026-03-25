@@ -8,7 +8,7 @@ import factoryImage from "../../../images/factoryImage.png";
 
 export default function Login({ status }) {
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: "",
+        username: "",
         password: "",
     });
     const [showPassword, setShowPassword] = useState(false);
@@ -54,27 +54,27 @@ export default function Login({ status }) {
                         <form onSubmit={submit} className="mt-6 space-y-4">
                             <div className="h-[58px] rounded-lg border border-[#CFD3D4] px-4 py-2">
                                 <label
-                                    htmlFor="email"
+                                    htmlFor="username"
                                     className="block text-xs font-normal leading-none text-[#5E6366]"
                                 >
                                     username
                                 </label>
                                 <input
-                                    id="email"
+                                    id="username"
                                     type="text"
-                                    name="email"
-                                    value={data.email}
+                                    name="username"
+                                    value={data.username}
                                     autoComplete="username"
                                     className="mt-2 w-full border-0 bg-transparent p-0 text-base leading-none text-black placeholder:text-[#ABAFB1] focus:outline-none focus:ring-0"
                                     placeholder="Isikan username anda"
                                     onChange={(e) =>
-                                        setData("email", e.target.value)
+                                        setData("username", e.target.value)
                                     }
                                     autoFocus
                                 />
                             </div>
                             <InputError
-                                message={errors.email}
+                                message={errors.username}
                                 className="mt-1"
                             />
 
