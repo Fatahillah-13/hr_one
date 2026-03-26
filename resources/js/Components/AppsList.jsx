@@ -105,15 +105,38 @@ export default function AppsList({
 	className,
 	cardClassName,
 }) {
+	const DRAG_THRESHOLD = 5;
 	const [activeTab, setActiveTab] = useState(defaultActiveTab);
 	const scrollRef = useRef(null);
 	const [canScrollLeft, setCanScrollLeft] = useState(false);
 	const [canScrollRight, setCanScrollRight] = useState(false);
 	const dragStateRef = useRef({
+		isPointerDown: false,
 		isDragging: false,
+		hasPointerCapture: false,
+		pointerId: null,
 		startX: 0,
 		startScrollLeft: 0,
 	});
+
+	const resetDragState = (event) => {
+		if (!scrollRef.current) return;
+
+		dragStateRef.current.isPointerDown = false;
+		dragStateRef.current.isDragging = false;
+		scrollRef.current.style.cursor = "grab";
+
+		if (
+			event
+			&& dragStateRef.current.hasPointerCapture
+			&& scrollRef.current.hasPointerCapture(event.pointerId)
+		) {
+			scrollRef.current.releasePointerCapture(event.pointerId);
+		}
+
+		dragStateRef.current.hasPointerCapture = false;
+		dragStateRef.current.pointerId = null;
+	};
 
 	const filteredApps = useMemo(() => {
 		return apps.filter((app) => app.division === activeTab);
@@ -144,27 +167,42 @@ export default function AppsList({
 
 	const handlePointerDown = (event) => {
 		if (!scrollRef.current) return;
-		dragStateRef.current.isDragging = true;
+		dragStateRef.current.isPointerDown = true;
+		dragStateRef.current.isDragging = false;
+		dragStateRef.current.hasPointerCapture = false;
+		dragStateRef.current.pointerId = event.pointerId;
 		dragStateRef.current.startX = event.clientX;
 		dragStateRef.current.startScrollLeft = scrollRef.current.scrollLeft;
-		scrollRef.current.style.cursor = "grabbing";
-		scrollRef.current.setPointerCapture(event.pointerId);
 	};
 
 	const handlePointerMove = (event) => {
-		if (!scrollRef.current || !dragStateRef.current.isDragging) return;
+		if (
+			!scrollRef.current
+			|| !dragStateRef.current.isPointerDown
+			|| dragStateRef.current.pointerId !== event.pointerId
+		) {
+			return;
+		}
+
 		const deltaX = event.clientX - dragStateRef.current.startX;
+
+		if (!dragStateRef.current.isDragging && Math.abs(deltaX) > DRAG_THRESHOLD) {
+			dragStateRef.current.isDragging = true;
+			scrollRef.current.style.cursor = "grabbing";
+			scrollRef.current.setPointerCapture(event.pointerId);
+			dragStateRef.current.hasPointerCapture = true;
+		}
+
+		if (!dragStateRef.current.isDragging) return;
+
 		scrollRef.current.scrollLeft = dragStateRef.current.startScrollLeft - deltaX;
 		updateScrollState();
 	};
 
 	const handlePointerUp = (event) => {
 		if (!scrollRef.current) return;
-		dragStateRef.current.isDragging = false;
-		scrollRef.current.style.cursor = "grab";
-		if (scrollRef.current.hasPointerCapture(event.pointerId)) {
-			scrollRef.current.releasePointerCapture(event.pointerId);
-		}
+		if (dragStateRef.current.pointerId !== event.pointerId) return;
+		resetDragState(event);
 		updateScrollState();
 	};
 

@@ -5,193 +5,241 @@ import AppCard from "@/Components/ui/app-card";
 import { cn } from "@/lib/utils";
 
 const defaultApps = [
-	{
-		id: 1,
-		title: "Nama App",
-		division: "HR IT",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-	{
-		id: 2,
-		title: "Nama App",
-		division: "HI",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-	{
-		id: 3,
-		title: "Nama App",
-		division: "OD Training",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-	{
-		id: 4,
-		title: "Nama App",
-		division: "Payroll",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
     {
-		id: 5,
-		title: "Nama App",
-		division: "Rekrutmen",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
+        id: 1,
+        title: "Nama App",
+        division: "HR IT",
+        description: "Write an amazing description in this dedicated card section. Each word counts.",
+        initials: "MJ",
+        href: "/settings",
+    },
     {
-		id: 6,
-		title: "Nama App",
-		division: "Konseling",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
+        id: 2,
+        title: "Nama App",
+        division: "HI",
+        description: "Write an amazing description in this dedicated card section. Each word counts.",
+        initials: "MJ",
+        href: "/",
+    },
+    {
+        id: 3,
+        title: "Nama App",
+        division: "OD Training",
+        description: "Write an amazing description in this dedicated card section. Each word counts.",
+        initials: "MJ",
+        href: "/",
+    },
+    {
+        id: 4,
+        title: "Nama App",
+        division: "Payroll",
+        description: "Write an amazing description in this dedicated card section. Each word counts.",
+        initials: "MJ",
+        href: "/",
+    },
+    {
+        id: 5,
+        title: "Nama App",
+        division: "Rekrutmen",
+        description: "Write an amazing description in this dedicated card section. Each word counts.",
+        initials: "MJ",
+        href: "/",
+    },
+    {
+        id: 6,
+        title: "Nama App",
+        division: "Konseling",
+        description: "Write an amazing description in this dedicated card section. Each word counts.",
+        initials: "MJ",
+        href: "/",
+    },
 ];
 
 export default function AppsCardList({
-	title = "Terakhir kali dibuka",
-	apps = defaultApps,
-	className,
-	cardClassName,
+    title = "Terakhir kali dibuka",
+    apps = defaultApps,
+    className,
+    cardClassName,
 }) {
-	const scrollRef = useRef(null);
-	const [canScrollLeft, setCanScrollLeft] = useState(false);
-	const [canScrollRight, setCanScrollRight] = useState(apps.length > 1);
-	const dragStateRef = useRef({
-		isDragging: false,
-		startX: 0,
-		startScrollLeft: 0,
-	});
+    const DRAG_THRESHOLD = 5;
+    const scrollRef = useRef(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(apps.length > 1);
+    const dragStateRef = useRef({
+        isPointerDown: false,
+        isDragging: false,
+        hasPointerCapture: false,
+        pointerId: null,
+        startX: 0,
+        startScrollLeft: 0,
+    });
 
-	const updateScrollState = () => {
-		if (!scrollRef.current) {
-			return;
-		}
+    const resetDragState = (event) => {
+        if (!scrollRef.current) {
+            return;
+        }
 
-		const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-		const maxScrollLeft = scrollWidth - clientWidth;
+        dragStateRef.current.isPointerDown = false;
+        dragStateRef.current.isDragging = false;
+        scrollRef.current.style.cursor = "grab";
 
-		setCanScrollLeft(scrollLeft > 2);
-		setCanScrollRight(scrollLeft < maxScrollLeft - 2);
-	};
+        if (
+            event
+            && dragStateRef.current.hasPointerCapture
+            && scrollRef.current.hasPointerCapture(event.pointerId)
+        ) {
+            scrollRef.current.releasePointerCapture(event.pointerId);
+        }
 
-	useEffect(() => {
-		updateScrollState();
+        dragStateRef.current.hasPointerCapture = false;
+        dragStateRef.current.pointerId = null;
+    };
 
-		const handleResize = () => updateScrollState();
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, [apps.length]);
+    const updateScrollState = () => {
+        if (!scrollRef.current) {
+            return;
+        }
 
-	const scrollByStep = (direction) => {
-		if (!scrollRef.current) {
-			return;
-		}
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        const maxScrollLeft = scrollWidth - clientWidth;
 
-		scrollRef.current.scrollBy({
-			left: direction * 352,
-			behavior: "smooth",
-		});
-	};
+        setCanScrollLeft(scrollLeft > 2);
+        setCanScrollRight(scrollLeft < maxScrollLeft - 2);
+    };
 
-	const scrollNext = () => {
-		scrollByStep(1);
-	};
+    useEffect(() => {
+        updateScrollState();
 
-	const scrollPrev = () => {
-		scrollByStep(-1);
-	};
+        const handleResize = () => updateScrollState();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, [apps.length]);
 
-	const handlePointerDown = (event) => {
-		if (!scrollRef.current) {
-			return;
-		}
+    const scrollByStep = (direction) => {
+        if (!scrollRef.current) {
+            return;
+        }
 
-		dragStateRef.current.isDragging = true;
-		dragStateRef.current.startX = event.clientX;
-		dragStateRef.current.startScrollLeft = scrollRef.current.scrollLeft;
-		scrollRef.current.style.cursor = "grabbing";
-		scrollRef.current.setPointerCapture(event.pointerId);
-	};
+        scrollRef.current.scrollBy({
+            left: direction * 352,
+            behavior: "smooth",
+        });
+    };
 
-	const handlePointerMove = (event) => {
-		if (!scrollRef.current || !dragStateRef.current.isDragging) {
-			return;
-		}
+    const scrollNext = () => {
+        scrollByStep(1);
+    };
 
-		const deltaX = event.clientX - dragStateRef.current.startX;
-		scrollRef.current.scrollLeft = dragStateRef.current.startScrollLeft - deltaX;
-		updateScrollState();
-	};
+    const scrollPrev = () => {
+        scrollByStep(-1);
+    };
 
-	const handlePointerUp = (event) => {
-		if (!scrollRef.current) {
-			return;
-		}
+    const handlePointerDown = (event) => {
+        if (!scrollRef.current) {
+            return;
+        }
 
-		dragStateRef.current.isDragging = false;
-		scrollRef.current.style.cursor = "grab";
-		if (scrollRef.current.hasPointerCapture(event.pointerId)) {
-			scrollRef.current.releasePointerCapture(event.pointerId);
-		}
-		updateScrollState();
-	};
+        dragStateRef.current.isPointerDown = true;
+        dragStateRef.current.isDragging = false;
+        dragStateRef.current.hasPointerCapture = false;
+        dragStateRef.current.pointerId = event.pointerId;
+        dragStateRef.current.startX = event.clientX;
+        dragStateRef.current.startScrollLeft = scrollRef.current.scrollLeft;
+    };
 
-	return (
-		<section className={cn("w-full min-w-0", className)}>
-			<h2 className="text-[20px] font-semibold leading-[1.36] text-[#27272E]">
-				{title}
-			</h2>
+    const handlePointerMove = (event) => {
+        if (
+            !scrollRef.current
+            || !dragStateRef.current.isPointerDown
+            || dragStateRef.current.pointerId !== event.pointerId
+        ) {
+            return;
+        }
 
-			<div className="relative mt-5">
-				<div
-					ref={scrollRef}
-					onPointerDown={handlePointerDown}
-					onPointerMove={handlePointerMove}
-					onPointerUp={handlePointerUp}
-					onPointerCancel={handlePointerUp}
-					onPointerLeave={handlePointerUp}
-					className="flex cursor-grab snap-x snap-mandatory gap-4 overflow-x-auto px-px py-[6px] pr-4 scroll-smooth sm:gap-6 sm:pr-16 touch-pan-x select-none [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
-					onScroll={updateScrollState}
-				>
-					{apps.map((app, index) => (
-						<div
-							key={app.id ?? `${app.title}-${index}`}
-							className="w-[280px] shrink-0 snap-start sm:w-[328px]"
-						>
-							<AppCard
-								{...app}
-								className={cn("max-w-none", cardClassName)}
-							/>
-						</div>
-					))}
-				</div>
+        const deltaX = event.clientX - dragStateRef.current.startX;
 
-				{apps.length > 1 ? (
-					<>
-						<button
-							type="button"
-							onClick={scrollPrev}
-							disabled={!canScrollLeft}
-							className="absolute left-0 top-1/2 hidden h-[45px] w-[45px] -translate-y-1/2 items-center justify-center rounded-full border border-black/5 bg-[#EEF3FB] text-[#292929] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.10),0px_4px_4px_0px_rgba(0,0,0,0.09),0px_10px_6px_0px_rgba(0,0,0,0.05),0px_17px_7px_0px_rgba(0,0,0,0.01)] transition hover:bg-[#E4ECF7] disabled:pointer-events-none disabled:opacity-40 lg:flex"
-							aria-label="Scroll applications left"
-						>
-							<ChevronLeft className="h-5 w-5" strokeWidth={2.2} />
-						</button>
+        if (!dragStateRef.current.isDragging && Math.abs(deltaX) > DRAG_THRESHOLD) {
+            dragStateRef.current.isDragging = true;
+            scrollRef.current.style.cursor = "grabbing";
+            scrollRef.current.setPointerCapture(event.pointerId);
+            dragStateRef.current.hasPointerCapture = true;
+        }
 
-						<button
-							type="button"
-							onClick={scrollNext}
-							disabled={!canScrollRight}
-							className="absolute right-0 top-1/2 hidden h-[45px] w-[45px] -translate-y-1/2 items-center justify-center rounded-full border border-black/5 bg-[#EEF3FB] text-[#292929] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.10),0px_4px_4px_0px_rgba(0,0,0,0.09),0px_10px_6px_0px_rgba(0,0,0,0.05),0px_17px_7px_0px_rgba(0,0,0,0.01)] transition hover:bg-[#E4ECF7] disabled:pointer-events-none disabled:opacity-40 lg:flex"
-							aria-label="Scroll applications right"
-						>
-							<ChevronRight className="h-5 w-5" strokeWidth={2.2} />
-						</button>
-					</>
-				) : null}
-			</div>
-		</section>
-	);
+        if (!dragStateRef.current.isDragging) {
+            return;
+        }
+
+        scrollRef.current.scrollLeft = dragStateRef.current.startScrollLeft - deltaX;
+        updateScrollState();
+    };
+
+    const handlePointerUp = (event) => {
+        if (!scrollRef.current) {
+            return;
+        }
+
+        if (dragStateRef.current.pointerId !== event.pointerId) {
+            return;
+        }
+
+        resetDragState(event);
+        updateScrollState();
+    };
+
+    return (
+        <section className={cn("w-full min-w-0", className)}>
+            <h2 className="text-[20px] font-semibold leading-[1.36] text-[#27272E]">
+                {title}
+            </h2>
+
+            <div className="relative mt-5">
+                <div
+                    ref={scrollRef}
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    onPointerLeave={handlePointerUp}
+                    className="flex cursor-grab snap-x snap-mandatory gap-4 overflow-x-auto px-px py-[6px] pr-4 scroll-smooth sm:gap-6 sm:pr-16 touch-pan-x select-none [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
+                    onScroll={updateScrollState}
+                >
+                    {apps.map((app, index) => (
+                        <div
+                            key={app.id ?? `${app.title}-${index}`}
+                            className="w-[280px] shrink-0 snap-start sm:w-[328px]"
+                        >
+                            <AppCard
+                                {...app}
+                                className={cn("max-w-none", cardClassName)}
+                            />
+                        </div>
+                    ))}
+                </div>
+
+                {apps.length > 1 ? (
+                    <>
+                        <button
+                            type="button"
+                            onClick={scrollPrev}
+                            disabled={!canScrollLeft}
+                            className="absolute left-0 top-1/2 hidden h-[45px] w-[45px] -translate-y-1/2 items-center justify-center rounded-full border border-black/5 bg-[#EEF3FB] text-[#292929] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.10),0px_4px_4px_0px_rgba(0,0,0,0.09),0px_10px_6px_0px_rgba(0,0,0,0.05),0px_17px_7px_0px_rgba(0,0,0,0.01)] transition hover:bg-[#E4ECF7] disabled:pointer-events-none disabled:opacity-40 lg:flex"
+                            aria-label="Scroll applications left"
+                        >
+                            <ChevronLeft className="h-5 w-5" strokeWidth={2.2} />
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={scrollNext}
+                            disabled={!canScrollRight}
+                            className="absolute right-0 top-1/2 hidden h-[45px] w-[45px] -translate-y-1/2 items-center justify-center rounded-full border border-black/5 bg-[#EEF3FB] text-[#292929] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.10),0px_4px_4px_0px_rgba(0,0,0,0.09),0px_10px_6px_0px_rgba(0,0,0,0.05),0px_17px_7px_0px_rgba(0,0,0,0.01)] transition hover:bg-[#E4ECF7] disabled:pointer-events-none disabled:opacity-40 lg:flex"
+                            aria-label="Scroll applications right"
+                        >
+                            <ChevronRight className="h-5 w-5" strokeWidth={2.2} />
+                        </button>
+                    </>
+                ) : null}
+            </div>
+        </section>
+    );
 }
