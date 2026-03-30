@@ -13,9 +13,11 @@ export default function AppCard({
 }) {
     const handleClick = () => {
         if (href) {
-            router.visit(href);
-        } else {
-            console.warn("No href provided for AppCard:", title);
+            if (href.startsWith('http://') || href.startsWith('https://')) {
+                window.open(href, '_blank', 'noopener,noreferrer');
+            } else {
+                router.visit(href);
+            }
         }
     };
     return (

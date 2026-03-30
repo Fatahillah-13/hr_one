@@ -28,7 +28,7 @@ export default function Create({ open = false, onOpenChange, user = null, roles 
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent
                 side="left"
-                className="flex h-full w-full flex-col p-0 sm:max-w-2xl data-[side=bottom]:max-h-[50vh] data-[side=top]:max-h-[50vh]"
+                className="flex h-full w-full flex-col p-0 sm:max-w-xl data-[side=bottom]:max-h-[50vh] data-[side=top]:max-h-[50vh]"
             >
                 <SheetHeader className="px-6 pt-4">
                     <SheetTitle>{isEdit ? 'Edit User' : 'Tambah User'}</SheetTitle>

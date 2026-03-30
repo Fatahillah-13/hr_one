@@ -3,6 +3,7 @@ import { Head } from "@inertiajs/react";
 import React, { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import IndexUsermanagement from "./UserManagement/index";
+import AppIndexManagement from "./AppManagement/index";
 
 const HomeIcon = ({
     className = "w-5 h-5"
@@ -92,7 +93,7 @@ function ExpandedTabs({ tabs, className, onChange }) {
     </div>
 }
 
-export default function Settings({ users, roles, divisions }) {
+export default function Settings({ users, roles, divisions, apps }) {
     const [activeTab, setActiveTab] = useState(0);
 
     const TABS = [{
@@ -116,7 +117,7 @@ export default function Settings({ users, roles, divisions }) {
     const renderTabContent = () => {
         switch (activeTab) {
             case 0:
-                return <h1>Hello, Im in Home Settings</h1>;
+                return <AppIndexManagement apps={apps} />;
             case 2:
                 return <IndexUsermanagement users={users} roles={roles} divisions={divisions} />;
             case 3:

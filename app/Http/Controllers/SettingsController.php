@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\App;
 use App\Models\Division;
 use App\Models\Role;
 use App\Models\User;
@@ -30,6 +31,7 @@ class SettingsController extends Controller
             'users' => $users,
             'roles' => Role::select('id', 'name')->get(),
             'divisions' => Division::select('id', 'name')->get(),
+            'apps' => App::with('divisions')->get(),
         ]);
     }
 }

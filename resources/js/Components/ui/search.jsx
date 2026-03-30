@@ -1,27 +1,32 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
 
-const defaultSuggestions = [
-  { id: 1, title: "People Portal", division: "HR IT", initials: "PP", color: "#4F46E5" },
-  { id: 2, title: "Employee Hub", division: "HI", initials: "EH", color: "#0EA5E9" },
-  { id: 3, title: "Learning Space", division: "OD/Training", initials: "LS", color: "#F59E0B" },
-  { id: 4, title: "Payroll Center", division: "Payroll", initials: "PC", color: "#EC4899" },
-  { id: 5, title: "Talent Flow", division: "Rekrutmen", initials: "TF", color: "#22C55E" },
-  { id: 6, title: "Care Line", division: "Konseling", initials: "CL", color: "#6366F1" },
-];
+const COLORS = ["#4F46E5", "#0EA5E9", "#F59E0B", "#EC4899", "#22C55E", "#6366F1", "#EF4444", "#8B5CF6"];
 
 export default function Search({
   value = "",
   onChange,
   onSubmit,
   placeholder = "Cari sistem yang anda butuhkan",
+  apps = [],
 }) {
   const [internalValue, setInternalValue] = useState(value);
-  const [suggestions, setSuggestions] = useState(defaultSuggestions);
   const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef(null);
   const wrapperRef = useRef(null);
   const isControlled = typeof onChange === "function";
+
+  const suggestions = useMemo(() => {
+    return apps.map((app, i) => ({
+      id: app.id,
+      title: app.name,
+      division: app.divisions?.map(d => d.name).join(', ') || '-',
+      initials: app.name?.substring(0, 2).toUpperCase(),
+      color: COLORS[i % COLORS.length],
+      href: app.app_link,
+    }));
+  }, [apps]);
 
   useEffect(() => {
     if (isControlled) {
@@ -64,13 +69,41 @@ export default function Search({
     const nextValue = event.target.value;
     setInternalValue(nextValue);
     setIsOpen(true);
+    setHighlightedIndex(-1);
     onChange?.(nextValue);
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    onSubmit?.(currentValue);
-    setIsOpen(false);
+    const target = highlightedIndex >= 0 && highlightedIndex < filteredSuggestions.length
+      ? filteredSuggestions[highlightedIndex]
+      : filteredSuggestions[0];
+    if (target) {
+      handlePickSuggestion(target);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (!isOpen || filteredSuggestions.length === 0) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        setHighlightedIndex(prev =>
+          prev < filteredSuggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        setHighlightedIndex(prev =>
+          prev > 0 ? prev - 1 : filteredSuggestions.length - 1
+        );
+        break;
+      case 'Escape':
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+        break;
+    }
   };
 
   const filteredSuggestions = useMemo(() => {
@@ -88,15 +121,17 @@ export default function Search({
       .slice(0, 6);
   }, [currentValue, suggestions]);
 
-  const handleClearAll = () => {
-    setSuggestions([]);
-  };
-
   const handlePickSuggestion = (item) => {
     setInternalValue(item.title);
     onChange?.(item.title);
-    onSubmit?.(item.title);
     setIsOpen(false);
+    if (item.href) {
+      if (item.href.startsWith('http://') || item.href.startsWith('https://')) {
+        window.open(item.href, '_blank', 'noopener,noreferrer');
+      } else {
+        window.location.href = item.href;
+      }
+    }
   };
 
   return (
@@ -119,6 +154,7 @@ export default function Search({
             value={currentValue}
             onChange={handleChange}
             onFocus={() => setIsOpen(true)}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className="h-full w-full border-0 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400 sm:text-base"
           />
@@ -133,25 +169,18 @@ export default function Search({
           {filteredSuggestions.length > 0 ? (
             <>
               <div className="mb-2 flex items-center justify-between px-2 py-1">
-                <p className="text-xs font-semibold tracking-[0.14em] text-[#6B7280]">RECENT SEARCH</p>
-                <button
-                  type="button"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={handleClearAll}
-                  className="text-sm text-[#6B7280] transition hover:text-[#374151]"
-                >
-                  Clear all
-                </button>
+                <p className="text-xs font-semibold tracking-[0.14em] text-[#6B7280]">APLIKASI</p>
               </div>
 
               <ul className="space-y-2">
-              {filteredSuggestions.map((item) => (
+              {filteredSuggestions.map((item, index) => (
                 <li key={item.id}>
                   <button
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => handlePickSuggestion(item)}
-                    className="flex w-full items-center justify-between rounded-xl bg-[#F3F4F6] px-3 py-2.5 text-left transition hover:bg-[#EAEFF7]"
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition ${highlightedIndex === index ? 'bg-[#EAEFF7]' : 'bg-[#F3F4F6] hover:bg-[#EAEFF7]'}`}
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <span

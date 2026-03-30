@@ -4,7 +4,7 @@ import HeaderSearch from "@/Components/HeaderSearch";
 import AppsCardList from "@/Components/AppsCardList";
 import AppsList from "@/Components/AppsList";
 
-export default function Dashboard() {
+export default function Dashboard({ apps = [], divisions = [] }) {
     return (
         <AuthenticatedLayout
             header={
@@ -16,13 +16,13 @@ export default function Dashboard() {
             <Head title="Dashboard" />
 
             <div className="pb-3">
-                <HeaderSearch />
+                <HeaderSearch apps={apps} />
             </div>
             <div className="py-4 px-8">
-                <AppsCardList />
+                <AppsCardList apps={apps} />
             </div>
             <div className="py-4 px-4">
-                <AppsList />
+                <AppsList apps={apps} divisions={divisions} />
             </div>
         </AuthenticatedLayout>
     );

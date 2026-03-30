@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Models\App;
+use App\Models\Division;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -11,6 +13,8 @@ Route::get('/', function () {
         'canRegister' => Route::has('register'),
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
+        'apps' => App::with('divisions')->get(),
+        'divisions' => Division::select('id', 'name', 'slug')->get(),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

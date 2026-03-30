@@ -4,60 +4,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import AppCard from "@/Components/ui/app-card";
 import { cn } from "@/lib/utils";
 
-const defaultApps = [
-    {
-        id: 1,
-        title: "Nama App",
-        division: "HR IT",
-        description: "Write an amazing description in this dedicated card section. Each word counts.",
-        initials: "MJ",
-        href: "/settings",
-    },
-    {
-        id: 2,
-        title: "Nama App",
-        division: "HI",
-        description: "Write an amazing description in this dedicated card section. Each word counts.",
-        initials: "MJ",
-        href: "/",
-    },
-    {
-        id: 3,
-        title: "Nama App",
-        division: "OD Training",
-        description: "Write an amazing description in this dedicated card section. Each word counts.",
-        initials: "MJ",
-        href: "/",
-    },
-    {
-        id: 4,
-        title: "Nama App",
-        division: "Payroll",
-        description: "Write an amazing description in this dedicated card section. Each word counts.",
-        initials: "MJ",
-        href: "/",
-    },
-    {
-        id: 5,
-        title: "Nama App",
-        division: "Rekrutmen",
-        description: "Write an amazing description in this dedicated card section. Each word counts.",
-        initials: "MJ",
-        href: "/",
-    },
-    {
-        id: 6,
-        title: "Nama App",
-        division: "Konseling",
-        description: "Write an amazing description in this dedicated card section. Each word counts.",
-        initials: "MJ",
-        href: "/",
-    },
-];
-
 export default function AppsCardList({
     title = "Terakhir kali dibuka",
-    apps = defaultApps,
+    apps = [],
     className,
     cardClassName,
 }) {
@@ -205,11 +154,16 @@ export default function AppsCardList({
                 >
                     {apps.map((app, index) => (
                         <div
-                            key={app.id ?? `${app.title}-${index}`}
+                            key={app.id ?? `${app.name}-${index}`}
                             className="w-[280px] shrink-0 snap-start sm:w-[328px]"
                         >
                             <AppCard
-                                {...app}
+                                title={app.name}
+                                division={app.divisions?.map(d => d.name).join(', ') || '-'}
+                                description={app.description || ''}
+                                initials={app.name?.substring(0, 2).toUpperCase()}
+                                avatarSrc={app.icon}
+                                href={app.app_link}
                                 className={cn("max-w-none", cardClassName)}
                             />
                         </div>

@@ -7,6 +7,7 @@ export default function HeaderSearch({
 	onChange,
 	onSubmit,
 	placeholder = "Cari sistem yang anda butuhkan",
+	apps = [],
 }) {
 	return (
 		<section className="relative z-20 w-full overflow-visible">
@@ -20,7 +21,7 @@ export default function HeaderSearch({
 			</div>
 
 			<div className="relative mx-auto flex h-[176px] w-full items-center justify-center px-4 sm:h-[190px] sm:px-6 md:h-[210px] lg:h-[222px]">
-                <Search value={value} onChange={onChange} onSubmit={onSubmit} placeholder={placeholder}></Search>
+                <Search value={value} onChange={onChange} onSubmit={onSubmit} placeholder={placeholder} apps={apps}></Search>
 			</div>
 		</section>
 	);

@@ -1,112 +1,33 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-	BadgeCheck,
-	Calculator,
 	ChevronLeft,
 	ChevronRight,
-	Flag,
 	LayoutGrid,
-	MousePointer2,
-	Smile,
-	Users,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import AppCard from "@/Components/ui/app-card";
 
-const defaultTabs = [
-	{ id: "HRD", label: "HRD", icon: LayoutGrid },
-	{ id: "Payroll", label: "Payroll", icon: Calculator },
-	{ id: "OD/Training", label: "OD/Training", icon: BadgeCheck },
-	{ id: "HR IT", label: "HR IT", icon: MousePointer2 },
-	{ id: "Konseling", label: "Konseling", icon: Smile },
-	{ id: "HI", label: "HI", icon: Flag },
-	{ id: "Rekrutmen", label: "Rekrutmen", icon: Users },
-];
-
-const defaultApps = [
-	{
-		id: 1,
-		title: "Nama App",
-		division: "HR IT",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-	{
-		id: 2,
-		title: "Nama App",
-		division: "HI",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-	{
-		id: 3,
-		title: "Nama App",
-		division: "OD/Training",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-	{
-		id: 4,
-		title: "Nama App",
-		division: "Payroll",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-    {
-		id: 5,
-		title: "Nama App",
-		division: "Rekrutmen",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-    {
-		id: 6,
-		title: "Nama App",
-		division: "Konseling",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-    {
-		id: 7,
-		title: "Nama App",
-		division: "HR IT",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-    {
-		id: 8,
-		title: "Nama App",
-		division: "HR IT",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-    {
-		id: 9,
-		title: "Nama App",
-		division: "HR IT",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-    {
-		id: 10,
-		title: "Nama App",
-		division: "HR IT",
-		description: "Write an amazing description in this dedicated card section. Each word counts.",
-		initials: "MJ",
-	},
-];
-
 export default function AppsList({
 	title = "Aplikasi Lainnya",
-	tabs = defaultTabs,
-	apps = defaultApps,
-	defaultActiveTab = "HR IT",
+	tabs: tabsProp,
+	apps = [],
+	divisions = [],
 	className,
 	cardClassName,
 }) {
 	const DRAG_THRESHOLD = 5;
-	const [activeTab, setActiveTab] = useState(defaultActiveTab);
+
+	const tabs = useMemo(() => {
+		if (tabsProp) return tabsProp;
+		return divisions.map(d => ({
+			id: d.id,
+			label: d.name,
+			icon: LayoutGrid,
+		}));
+	}, [tabsProp, divisions]);
+
+	const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? null);
 	const scrollRef = useRef(null);
 	const [canScrollLeft, setCanScrollLeft] = useState(false);
 	const [canScrollRight, setCanScrollRight] = useState(false);
@@ -139,7 +60,9 @@ export default function AppsList({
 	};
 
 	const filteredApps = useMemo(() => {
-		return apps.filter((app) => app.division === activeTab);
+		return apps.filter((app) =>
+			app.divisions?.some(d => d.id === activeTab)
+		);
 	}, [activeTab, apps]);
 
 	const updateScrollState = () => {
@@ -273,11 +196,16 @@ export default function AppsList({
 						{filteredApps.length > 0 ? (
 							filteredApps.map((app, index) => (
 								<div
-									key={app.id ?? `${app.title}-${index}`}
+									key={app.id ?? `${app.name}-${index}`}
 									className="w-[280px] shrink-0 snap-start sm:w-[328px]"
 								>
 									<AppCard
-										{...app}
+										title={app.name}
+										division={app.divisions?.map(d => d.name).join(', ') || '-'}
+										description={app.description || ''}
+										initials={app.name?.substring(0, 2).toUpperCase()}
+										avatarSrc={app.icon}
+										href={app.app_link}
 										className={cn("max-w-none", cardClassName)}
 									/>
 								</div>

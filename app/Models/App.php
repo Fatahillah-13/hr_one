@@ -11,11 +11,11 @@ class App extends Model
         'slug',
         'description',
         'icon',
-        'category_id',
+        'app_link',
     ];
 
-    public function category()
+    public function divisions()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsToMany(Division::class)->withTimestamps();
     }
 }
