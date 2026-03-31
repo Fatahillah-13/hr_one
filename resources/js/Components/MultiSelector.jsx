@@ -87,7 +87,7 @@ export default function MultiSelector({ options = [], selected = [], onChange, p
     return (
         <div className="w-full" ref={wrapperRef}>
             <div className="relative">
-                <div className="flex flex-wrap items-center gap-2 p-2 min-h-[40px] text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-black rounded-md shadow-sm cursor-text transition-colors focus-within:ring-2 focus-within:ring-slate-900 dark:focus-within:ring-slate-100 focus-within:ring-offset-2" onClick={() => {
+                <div className="flex flex-wrap items-center gap-2 p-2 min-h-[40px] text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-black rounded-md shadow-sm cursor-text transition-colors focus-within:ring-0 focus-within:ring-offset-0" onClick={() => {
                     setIsOpen(true);
                     inputRef.current?.focus();
                 }}>
@@ -100,7 +100,7 @@ export default function MultiSelector({ options = [], selected = [], onChange, p
                             <XIcon />
                         </button>
                     </div>)}
-                    <input ref={inputRef} type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onFocus={() => setIsOpen(true)} onKeyDown={handleKeyDown} placeholder={selectedOptions.length === 0 ? placeholder : ""} className="flex-grow bg-transparent border-none outline-none text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm p-0" />
+                    <input ref={inputRef} type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onFocus={() => setIsOpen(true)} onKeyDown={handleKeyDown} placeholder={selectedOptions.length === 0 ? placeholder : ""} className="flex-grow bg-transparent border-none outline-none ring-0 focus:ring-0 focus:outline-none text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm p-0" />
                 </div>
 
                 {isOpen && <div className="absolute z-[10001] w-full mt-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-black rounded-md shadow-lg max-h-60 overflow-y-auto animate-popover-in">

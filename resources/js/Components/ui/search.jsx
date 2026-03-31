@@ -156,7 +156,7 @@ export default function Search({
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="h-full w-full border-0 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400 sm:text-base"
+            className="h-full w-full border-0 bg-transparent text-sm text-gray-700 outline-none ring-0 focus:outline-none focus:ring-0 focus:border-0 placeholder:text-gray-400 sm:text-base"
           />
           <span className="hidden rounded-md border border-gray-200 bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-500 sm:inline-flex">
             Ctrl+K

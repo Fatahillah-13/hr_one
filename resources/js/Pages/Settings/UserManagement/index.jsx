@@ -57,7 +57,7 @@ export default function Index({ users, roles = [], divisions = [] }) {
             </div>
 
             <div className="overflow-x-auto bg-white rounded shadow">
-                <table className="w-full">
+                <Table className="w-full">
                     <TableHeader>
                         <TableRow className="text-left border-b">
                             <TableHead className="p-3">Nama</TableHead>
@@ -101,7 +101,7 @@ export default function Index({ users, roles = [], divisions = [] }) {
                             </TableRow>
                         ))}
                     </TableBody>
-                </table>
+                </Table>
             </div>
 
             <Create

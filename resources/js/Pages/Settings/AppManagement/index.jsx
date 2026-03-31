@@ -32,7 +32,7 @@ export default function AppManagement({ apps }) {
     }
 
     return (
-        <div>
+        <div className="p-6">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">App Management</h1>
                 <Button onClick={() => setOpen(true)}>Create New App</Button>
@@ -42,7 +42,7 @@ export default function AppManagement({ apps }) {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Name</TableHead>
-                        <tableHead>Division</tableHead>
+                        <TableHead>Division</TableHead>
                         <TableHead>URL</TableHead>
                         <TableHead>Actions</TableHead>
                     </TableRow>
