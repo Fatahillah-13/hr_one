@@ -1,0 +1,86 @@
+'use client';;
+import * as React from 'react';
+import { motion, useMotionValue, useSpring } from 'motion/react';
+import { Slot } from '../animate/slot';
+
+function Magnetic({
+  ref,
+  strength = 0.5,
+  range = 120,
+  springOptions = { stiffness: 100, damping: 10, mass: 0.5 },
+  onlyOnHover = false,
+  disableOnTouch = true,
+  style,
+  onMouseEnter,
+  onMouseLeave,
+  onMouseMove,
+  asChild = false,
+  ...props
+}) {
+  const localRef = React.useRef(null);
+  React.useImperativeHandle(ref, () => localRef.current);
+
+  const isTouchDevice = React.useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(pointer:coarse)').matches;
+  }, []);
+
+  const [active, setActive] = React.useState(!onlyOnHover);
+
+  const rawX = useMotionValue(0);
+  const rawY = useMotionValue(0);
+  const x = useSpring(rawX, springOptions);
+  const y = useSpring(rawY, springOptions);
+
+  const compute = React.useCallback((e) => {
+    if (!localRef.current) return;
+    const { left, top, width, height } =
+      localRef.current.getBoundingClientRect();
+    const cx = left + width / 2;
+    const cy = top + height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const dist = Math.hypot(dx, dy);
+
+    if ((active || !onlyOnHover) && dist <= range) {
+      const factor = (1 - dist / range) * strength;
+      rawX.set(dx * factor);
+      rawY.set(dy * factor);
+    } else {
+      rawX.set(0);
+      rawY.set(0);
+    }
+  }, [active, onlyOnHover, range, strength, rawX, rawY]);
+
+  React.useEffect(() => {
+    if (disableOnTouch && isTouchDevice) return;
+    const handle = (e) => compute(e);
+    window.addEventListener('mousemove', handle);
+    return () => window.removeEventListener('mousemove', handle);
+  }, [compute, disableOnTouch, isTouchDevice]);
+
+  const Component = asChild ? Slot : motion.div;
+
+  return (
+    <Component
+      ref={localRef}
+      style={{ display: 'inline-block', ...style, x, y }}
+      onMouseEnter={(e) => {
+        if (onlyOnHover) setActive(true);
+        onMouseEnter?.(e);
+      }}
+      onMouseLeave={(e) => {
+        if (onlyOnHover) setActive(false);
+        rawX.set(0);
+        rawY.set(0);
+        onMouseLeave?.(e);
+      }}
+      onMouseMove={(e) => {
+        if (onlyOnHover) compute(e);
+        onMouseMove?.(e);
+      }}
+      {...props} />
+  );
+}
+
+export { Magnetic };
