@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import logoImage from "../../images/logo.png";
 import NotificationDropdown from "./NotificationDropdown";
 import { AvatarDropdown } from "./AvatarDropdown";
+import NotebookLmIcon from "../../images/notebooklm.svg";
 
 function getAvatarUrl(avatar) {
     if (!avatar) return null;
@@ -57,7 +58,10 @@ export default function Navbar({ user }) {
                 </div>
 
                 <div className="flex items-center gap-3 sm:gap-4 md:gap-7">
-                    <NotificationDropdown />
+                    <a href="https://notebooklm.google.com/notebook/ff900944-4d2e-4e48-9dbc-a426bb3ae696" target="_blank" rel="noopener noreferrer">
+                        <img src={NotebookLmIcon} alt="Notebook LM" className="h-6 w-6" />
+                    </a>
+                    {/* <NotificationDropdown /> */}
                     <AvatarDropdown />
                 </div>
             </div>

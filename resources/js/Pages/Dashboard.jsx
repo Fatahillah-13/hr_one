@@ -18,9 +18,9 @@ export default function Dashboard({ apps = [], divisions = [] }) {
             <div className="pb-3">
                 <HeaderSearch apps={apps} />
             </div>
-            <div className="py-4 px-8">
+            {/* <div className="py-4 px-8">
                 <AppsCardList apps={apps} />
-            </div>
+            </div> */}
             <div className="py-4 px-4">
                 <AppsList apps={apps} divisions={divisions} />
             </div>
