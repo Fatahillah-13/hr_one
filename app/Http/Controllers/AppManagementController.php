@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\App;
 use App\Models\Division;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class AppManagementController extends Controller
@@ -39,11 +41,44 @@ class AppManagementController extends Controller
             'description' => 'nullable|string|max:500',
             'icon' => 'nullable|string|max:255',
             'app_link' => 'nullable|url|max:255',
+            'sso_enabled' => 'nullable|boolean',
+            'sso_client_id' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'string',
+                'max:255',
+                'unique:apps,sso_client_id',
+            ],
+            'sso_redirect_uri' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'url',
+                'max:255',
+            ],
+            'sso_client_secret' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'string',
+                'min:12',
+                'max:255',
+            ],
             'division_ids' => 'nullable|array',
             'division_ids.*' => 'exists:divisions,id',
         ]);
 
-        $app = App::create(collect($validated)->except('division_ids')->toArray());
+        $appAttributes = collect($validated)
+            ->except(['division_ids', 'sso_client_secret'])
+            ->toArray();
+
+        if ($validated['sso_enabled'] ?? false) {
+            $appAttributes['sso_client_secret_hash'] = Hash::make($validated['sso_client_secret']);
+        } else {
+            $appAttributes['sso_client_id'] = null;
+            $appAttributes['sso_redirect_uri'] = null;
+            $appAttributes['sso_client_secret_hash'] = null;
+        }
+
+        $app = App::create($appAttributes);
         $app->divisions()->sync($validated['division_ids'] ?? []);
 
         return redirect()->back();
@@ -84,11 +119,45 @@ class AppManagementController extends Controller
             'description' => 'nullable|string|max:500',
             'icon' => 'nullable|string|max:255',
             'app_link' => 'nullable|url|max:255',
+            'sso_enabled' => 'nullable|boolean',
+            'sso_client_id' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('apps', 'sso_client_id')->ignore($app->id),
+            ],
+            'sso_redirect_uri' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'url',
+                'max:255',
+            ],
+            'sso_client_secret' => [
+                'nullable',
+                'string',
+                'min:12',
+                'max:255',
+            ],
             'division_ids' => 'nullable|array',
             'division_ids.*' => 'exists:divisions,id',
         ]);
 
-        $app->update(collect($validated)->except('division_ids')->toArray());
+        $appAttributes = collect($validated)
+            ->except(['division_ids', 'sso_client_secret'])
+            ->toArray();
+
+        if ($validated['sso_enabled'] ?? false) {
+            if (! empty($validated['sso_client_secret'])) {
+                $appAttributes['sso_client_secret_hash'] = Hash::make($validated['sso_client_secret']);
+            }
+        } else {
+            $appAttributes['sso_client_id'] = null;
+            $appAttributes['sso_redirect_uri'] = null;
+            $appAttributes['sso_client_secret_hash'] = null;
+        }
+
+        $app->update($appAttributes);
         $app->divisions()->sync($validated['division_ids'] ?? []);
 
         return redirect()->back();

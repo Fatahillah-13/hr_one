@@ -163,7 +163,7 @@ export default function AppsCardList({
                                 description={app.description || ''}
                                 initials={app.name?.substring(0, 2).toUpperCase()}
                                 avatarSrc={app.icon}
-                                href={app.app_link}
+                                href={app.sso_enabled ? route("sso.launch", app.slug) : app.app_link}
                                 className={cn("max-w-none", cardClassName)}
                             />
                         </div>
