@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react'
+import { router, usePage } from '@inertiajs/react'
 import { useState } from 'react'
 import Button from "@/components/ui/button"
 import {
@@ -16,12 +16,15 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { MoreHorizontalIcon } from "lucide-react"
+import { MoreHorizontalIcon, UploadIcon } from "lucide-react"
 import Create from './create'
+import ImportUsers from './import'
 
 export default function Index({ users, roles = [], divisions = [] }) {
     const [isSheetOpen, setIsSheetOpen] = useState(false)
+    const [isImportOpen, setIsImportOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState(null)
+    const { flash } = usePage().props
 
     const handleDelete = (id) => {
         if (confirm('Yakin hapus user ini?')) {
@@ -46,15 +49,41 @@ export default function Index({ users, roles = [], divisions = [] }) {
         <div className="p-6">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-xl font-semibold">User Management</h1>
-                <Button
-                    onClick={() => {
-                        setSelectedUser(null)
-                        setIsSheetOpen(true)
-                    }}
-                >
-                    Tambah User
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsImportOpen(true)}
+                    >
+                        <UploadIcon className="size-4 mr-2" />
+                        Import Excel
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setSelectedUser(null)
+                            setIsSheetOpen(true)
+                        }}
+                    >
+                        Tambah User
+                    </Button>
+                </div>
             </div>
+
+            {flash?.success && (
+                <div className="mb-4 rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700">
+                    {flash.success}
+                </div>
+            )}
+
+            {flash?.import_errors && flash.import_errors.length > 0 && (
+                <div className="mb-4 rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-700">
+                    <p className="font-medium mb-1">Beberapa baris gagal diimport:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                        {flash.import_errors.map((err, i) => (
+                            <li key={i}>{err}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             <div className="overflow-x-auto bg-white rounded shadow">
                 <Table className="w-full">
@@ -115,6 +144,11 @@ export default function Index({ users, roles = [], divisions = [] }) {
                 user={selectedUser}
                 roles={roles}
                 divisions={divisions}
+            />
+
+            <ImportUsers
+                open={isImportOpen}
+                onOpenChange={setIsImportOpen}
             />
         </div>
     )

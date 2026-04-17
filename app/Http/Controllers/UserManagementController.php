@@ -4,13 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Imports\UsersImport;
 use App\Models\Division;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UserManagementController extends Controller
 {
@@ -141,5 +144,43 @@ class UserManagementController extends Controller
         return redirect()
             ->route('users.index')
             ->with('success', 'User berhasil dihapus.');
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:2048'],
+        ]);
+
+        $import = new UsersImport();
+        Excel::import($import, $request->file('file'));
+
+        $messages = [];
+        if ($import->successCount > 0) {
+            $messages['success'] = "{$import->successCount} user berhasil diimport.";
+        }
+        if (! empty($import->errors)) {
+            $messages['import_errors'] = $import->errors;
+        }
+
+        return redirect()->route('users.index')->with($messages);
+    }
+
+    public function downloadTemplate()
+    {
+        $headers = ['name', 'username', 'email', 'password', 'role', 'division', 'status'];
+        $example = ['John Doe', 'johndoe', 'john@example.com', 'password123', 'Admin', 'IT', 'aktif'];
+
+        $callback = function () use ($headers, $example) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $headers);
+            fputcsv($file, $example);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="template_import_users.csv"',
+        ]);
     }
 }
