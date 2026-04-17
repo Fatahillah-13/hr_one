@@ -16,7 +16,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { MoreHorizontalIcon, UploadIcon } from "lucide-react"
+import { MoreHorizontalIcon, UploadIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import Create from './create'
 import ImportUsers from './import'
 
@@ -132,6 +132,64 @@ export default function Index({ users, roles = [], divisions = [] }) {
                     </TableBody>
                 </Table>
             </div>
+
+            {users.last_page > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-gray-600">
+                        Menampilkan {users.from}–{users.to} dari {users.total} user
+                    </p>
+                    <div className="flex items-center gap-1">
+                        {users.links.map((link, i) => {
+                            const goToPage = () => {
+                                if (!link.url) return
+                                const url = new URL(link.url)
+                                const page = url.searchParams.get('page') || 1
+                                router.get(route('settings'), { page, tab: 'users' }, { preserveState: true })
+                            }
+                            if (link.label.includes('Previous')) {
+                                return (
+                                    <Button
+                                        key={i}
+                                        variant="outline"
+                                        size="icon"
+                                        className="size-8"
+                                        disabled={!link.url}
+                                        onClick={goToPage}
+                                    >
+                                        <ChevronLeftIcon className="size-4" />
+                                    </Button>
+                                )
+                            }
+                            if (link.label.includes('Next')) {
+                                return (
+                                    <Button
+                                        key={i}
+                                        variant="outline"
+                                        size="icon"
+                                        className="size-8"
+                                        disabled={!link.url}
+                                        onClick={goToPage}
+                                    >
+                                        <ChevronRightIcon className="size-4" />
+                                    </Button>
+                                )
+                            }
+                            return (
+                                <Button
+                                    key={i}
+                                    variant={link.active ? 'default' : 'outline'}
+                                    size="icon"
+                                    className="size-8"
+                                    disabled={!link.url}
+                                    onClick={goToPage}
+                                >
+                                    {link.label}
+                                </Button>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
 
             <Create
                 open={isSheetOpen}

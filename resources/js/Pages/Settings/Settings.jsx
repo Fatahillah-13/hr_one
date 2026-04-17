@@ -94,7 +94,9 @@ function ExpandedTabs({ tabs, className, onChange }) {
 }
 
 export default function Settings({ users, roles, divisions, apps }) {
-    const [activeTab, setActiveTab] = useState(0);
+    const tabMap = { users: 2, messages: 3, settings: 5 };
+    const urlTab = new URLSearchParams(window.location.search).get('tab');
+    const [activeTab, setActiveTab] = useState(urlTab ? (tabMap[urlTab] ?? 0) : 0);
 
     const TABS = [{
         title: "Home",
