@@ -2,10 +2,10 @@ import React from "react";
 import { Link, usePage, router } from "@inertiajs/react";
 import logoImage from "../../images/logo.png";
 
-const navItems = [
+const baseNavItems = [
     { label: "Home", href: "/dashboard" },
     { label: "Profile", href: "/profile" },
-    { label: "Settings", href: "/settings" },
+    { label: "Settings", href: "/settings", adminOnly: true },
 ];
 
 function isActive(currentUrl, href) {
@@ -14,8 +14,10 @@ function isActive(currentUrl, href) {
 }
 
 export default function Sidebar({ onClose }) {
-    const { url } = usePage();
+    const { url, props } = usePage();
     const currentUrl = url.split("?")[0];
+    const isAdmin = props.auth?.isAdmin;
+    const navItems = baseNavItems.filter(item => !item.adminOnly || isAdmin);
 
     return (
         <aside className="h-screen border-r bg-white flex flex-col">
