@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\SsoController;
 use App\Http\Controllers\ProfileController;
 use App\Models\App;
 use App\Models\Division;
@@ -24,6 +25,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/sso/launch/{app:slug}', [SsoController::class, 'launch'])->name('sso.launch');
 });
 
 require __DIR__.'/auth.php';

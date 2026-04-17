@@ -1,4 +1,4 @@
-import { router, useForm, usePage } from '@inertiajs/react'
+import { useForm, usePage } from '@inertiajs/react'
 import React from "react";
 import Modal from '@/Components/ui/modal';
 import Button from '@/Components/ui/button';
@@ -15,6 +15,10 @@ export default function Create({ open, setOpen }) {
         description: '',
         icon: '',
         app_link: '',
+        sso_enabled: false,
+        sso_client_id: '',
+        sso_redirect_uri: '',
+        sso_client_secret: '',
         division_ids: [],
     })
 
@@ -88,6 +92,60 @@ export default function Create({ open, setOpen }) {
                     {errors.app_link && <div className="text-red-500 text-sm">{errors.app_link}</div>}
                 </div>
 
+                <div className="space-y-4 rounded-lg border border-slate-200 p-4">
+                    <div className="flex items-start gap-3">
+                        <input
+                            id="create-sso-enabled"
+                            type="checkbox"
+                            checked={data.sso_enabled}
+                            onChange={(e) => setData('sso_enabled', e.target.checked)}
+                            className="mt-1 h-4 w-4 rounded border-slate-300"
+                        />
+                        <div className="space-y-1">
+                            <Label htmlFor="create-sso-enabled">Enable SSO</Label>
+                            <p className="text-sm text-slate-500">
+                                Gunakan one-time code dan JWT exchange untuk aplikasi ini.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <Label>SSO Client ID</Label>
+                        <Input
+                            type="text"
+                            value={data.sso_client_id}
+                            onChange={(e) => setData('sso_client_id', e.target.value)}
+                            placeholder="payroll-local"
+                            disabled={!data.sso_enabled}
+                        />
+                        {errors.sso_client_id && <div className="text-red-500 text-sm">{errors.sso_client_id}</div>}
+                    </div>
+
+                    <div>
+                        <Label>SSO Redirect URI</Label>
+                        <Input
+                            type="url"
+                            value={data.sso_redirect_uri}
+                            onChange={(e) => setData('sso_redirect_uri', e.target.value)}
+                            placeholder="http://localhost:8001/sso/callback"
+                            disabled={!data.sso_enabled}
+                        />
+                        {errors.sso_redirect_uri && <div className="text-red-500 text-sm">{errors.sso_redirect_uri}</div>}
+                    </div>
+
+                    <div>
+                        <Label>SSO Client Secret</Label>
+                        <Input
+                            type="text"
+                            value={data.sso_client_secret}
+                            onChange={(e) => setData('sso_client_secret', e.target.value)}
+                            placeholder="Minimal 12 karakter"
+                            disabled={!data.sso_enabled}
+                        />
+                        {errors.sso_client_secret && <div className="text-red-500 text-sm">{errors.sso_client_secret}</div>}
+                    </div>
+                </div>
+
                 <div>
                     <Label>Divisions</Label>
                     <MultiSelector
@@ -111,4 +169,3 @@ export default function Create({ open, setOpen }) {
         </Modal>
     )
 }
-

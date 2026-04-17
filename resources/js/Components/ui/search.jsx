@@ -24,7 +24,7 @@ export default function Search({
       division: app.divisions?.map(d => d.name).join(', ') || '-',
       initials: app.name?.substring(0, 2).toUpperCase(),
       color: COLORS[i % COLORS.length],
-      href: app.app_link,
+      href: app.sso_enabled ? route("sso.launch", app.slug) : app.app_link,
     }));
   }, [apps]);
 

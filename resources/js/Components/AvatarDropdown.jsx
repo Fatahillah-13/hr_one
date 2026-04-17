@@ -8,9 +8,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 
 export function AvatarDropdown() {
+    const { auth } = usePage().props;
+    const isAdmin = auth?.isAdmin;
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -35,9 +38,11 @@ export function AvatarDropdown() {
                     <DropdownMenuItem asChild>
                         <Link href="/billing">Billing</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                        <Link href={route("settings")}>Settings</Link>
-                    </DropdownMenuItem>
+                    {isAdmin && (
+                        <DropdownMenuItem asChild>
+                            <Link href={route("settings")}>Settings</Link>
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
