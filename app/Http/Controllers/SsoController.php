@@ -5,8 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Firebase\JWT\JWK;
+use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class SsoController extends Controller
 {
@@ -34,8 +39,22 @@ class SsoController extends Controller
         // 4. Login ke Laravel seperti biasa
         Auth::login($user);
 
-        // 5. Simpan id_token untuk logout global nanti
-        session(['id_token' => $sso->accessTokenResponseBody['id_token'] ?? null]);
+        $idToken = $sso->accessTokenResponseBody['id_token'] ?? null;
+        session(['id_token' => $idToken]);
+
+        // Ambil "sid" dari isi id_token
+        $payload = $idToken
+            ? json_decode(base64_decode(strtr(explode('.', $idToken)[1], '-_', '+/')), true)
+            : [];
+
+        if (!empty($payload['sid'])) {
+            DB::table('sso_sessions')->insert([
+                'sid'        => $payload['sid'],
+                'session_id' => session()->getId(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return redirect()->intended('/dashboard');
     }
@@ -56,5 +75,40 @@ class SsoController extends Controller
             ]);
 
         return Inertia::location($url);
+    }
+
+    public function backchannel(Request $request)
+    {
+        $claims = $this->validateLogoutToken((string) $request->input('logout_token'));
+
+        $sessionIds = DB::table('sso_sessions')
+            ->where('sid', $claims->sid)
+            ->pluck('session_id');
+
+        DB::table('sessions')->whereIn('id', $sessionIds)->delete();
+        DB::table('sso_sessions')->where('sid', $claims->sid)->delete();
+
+        return response()->noContent();
+    }
+
+    private function validateLogoutToken(string $token): object
+    {
+        $realmUrl = rtrim(config('services.keycloak.base_url'), '/')
+            . '/realms/' . config('services.keycloak.realms');
+
+        // Kunci publik Keycloak untuk memeriksa tanda tangan token
+        $jwks = Cache::remember('keycloak_jwks', 3600, fn () =>
+            Http::get($realmUrl . '/protocol/openid-connect/certs')->json()
+        );
+
+        $claims = JWT::decode($token, JWK::parseKeySet($jwks)); // gagal = exception
+
+        abort_if($claims->iss !== $realmUrl, 400);
+        abort_if(!in_array(config('services.keycloak.client_id'), (array) $claims->aud, true), 400);
+        abort_if(!isset($claims->events->{'http://schemas.openid.net/event/backchannel-logout'}), 400);
+        abort_if(isset($claims->nonce), 400);   // logout token tidak boleh punya nonce
+        abort_if(empty($claims->sid), 400);
+
+        return $claims;
     }
 }

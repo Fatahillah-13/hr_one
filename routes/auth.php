@@ -25,6 +25,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/auth/callback', [SsoController::class, 'callback']);
     Route::get('/login', fn () => redirect()->route('sso.redirect'))->name('login');
 
+    Route::post('/auth/backchannel-logout', [SsoController::class, 'backchannel']);
 
     // Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
