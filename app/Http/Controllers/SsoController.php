@@ -1,64 +1,60 @@
 <?php
-
+// app/Http/Controllers/SsoController.php
 namespace App\Http\Controllers;
 
-use App\Exceptions\SsoException;
-use App\Models\App;
-use App\Services\SsoLoginService;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Socialite\Facades\Socialite;
 
 class SsoController extends Controller
 {
-    public function __construct(
-        protected SsoLoginService $ssoLoginService,
-    ) {
+    // Mengirim user ke Keycloak
+    public function redirect()
+    {
+        return Socialite::driver('keycloak')->redirect();
     }
 
-    public function launch(Request $request, App $app): RedirectResponse
+    // Menerima user kembali dari Keycloak
+    public function callback()
     {
-        try {
-            $payload = $this->ssoLoginService->createLaunchPayload(
-                $app,
-                $request->user(),
-                $request->ip(),
-            );
-        } catch (SsoException $exception) {
-            abort($exception->status(), $exception->getMessage());
-        }
+        $sso = Socialite::driver('keycloak')->user();
 
-        $separator = str_contains($app->sso_redirect_uri, '?') ? '&' : '?';
-        $targetUrl = $app->sso_redirect_uri.$separator.http_build_query([
-            'code' => $payload['code'],
-            'state' => $payload['state'],
-        ]);
+        // 1. Ambil data identitas dari token, sesuai pengaturan .env
+        $value = $sso->user[config('sso.claim')] ?? null;
+        abort_if(!$value, 403, 'Data identitas tidak ditemukan di SSO.');
 
-        return redirect()->away($targetUrl);
+        // 2. Cari user di tabel aplikasi ini
+        $user = User::where(config('sso.column'), $value)->first();
+
+        // 3. Kalau tidak ada, tolak (lebih aman untuk data HR)
+        abort_if(!$user, 403, 'Akun Anda belum terdaftar di aplikasi ini.');
+
+        // 4. Login ke Laravel seperti biasa
+        Auth::login($user);
+
+        // 5. Simpan id_token untuk logout global nanti
+        session(['id_token' => $sso->accessTokenResponseBody['id_token'] ?? null]);
+
+        return redirect()->intended('/dashboard');
     }
 
-    public function exchange(Request $request): JsonResponse
+    public function logout(Request $request)
     {
-        $validated = $request->validate([
-            'client_id' => ['required', 'string'],
-            'client_secret' => ['required', 'string'],
-            'code' => ['required', 'string'],
-            'state' => ['required', 'string'],
-        ]);
+        $idToken = $request->session()->get('id_token');
 
-        try {
-            $response = $this->ssoLoginService->exchange(
-                $validated['client_id'],
-                $validated['client_secret'],
-                $validated['code'],
-                $validated['state'],
-            );
-        } catch (SsoException $exception) {
-            return response()->json([
-                'message' => $exception->getMessage(),
-            ], $exception->status());
-        }
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return response()->json($response);
+        $url = rtrim(config('services.keycloak.base_url'), '/')
+            . '/realms/' . config('services.keycloak.realms')
+            . '/protocol/openid-connect/logout?' . http_build_query([
+                'post_logout_redirect_uri' => url('/'),
+                'id_token_hint'            => $idToken,
+            ]);
+
+        return Inertia::location($url);
     }
 }
