@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
 
+        $middleware->appendToGroup('web', \App\Http\Middleware\CheckSsoSession::class);
         $middleware->validateCsrfTokens(except: ['auth/backchannel-logout']);
 
     })

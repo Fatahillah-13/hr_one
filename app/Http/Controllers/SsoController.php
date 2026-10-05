@@ -40,7 +40,11 @@ class SsoController extends Controller
         Auth::login($user);
 
         $idToken = $sso->accessTokenResponseBody['id_token'] ?? null;
-        session(['id_token' => $idToken]);
+        session([
+            'id_token' => $idToken,
+            'refresh_token' => $sso->refreshToken,
+            'sso_checked_at' => now()->timestamp,
+            ]);
 
         // Ambil "sid" dari isi id_token
         $payload = $idToken
