@@ -44,7 +44,6 @@ export default function AppManagement({ apps }) {
                         <TableHead>Name</TableHead>
                         <TableHead>Division</TableHead>
                         <TableHead>URL</TableHead>
-                        <TableHead>SSO</TableHead>
                         <TableHead>Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -54,18 +53,6 @@ export default function AppManagement({ apps }) {
                             <TableCell>{app.name}</TableCell>
                             <TableCell>{app.divisions.map(d => d.name).join(', ')}</TableCell>
                             <TableCell>{app.app_link}</TableCell>
-                            <TableCell>
-                                {app.sso_enabled ? (
-                                    <div className="space-y-1 text-xs">
-                                        <div className="inline-flex rounded-full bg-emerald-100 px-2 py-1 font-medium text-emerald-700">
-                                            Enabled
-                                        </div>
-                                        <div className="text-slate-500">{app.sso_client_id}</div>
-                                    </div>
-                                ) : (
-                                    <span className="text-slate-500">Disabled</span>
-                                )}
-                            </TableCell>
                             <TableCell>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
