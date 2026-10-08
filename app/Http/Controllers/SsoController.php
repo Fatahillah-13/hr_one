@@ -31,7 +31,7 @@ class SsoController extends Controller
         abort_if(!$value, 403, 'Data identitas tidak ditemukan di SSO.');
 
         // 2. Cari user di tabel aplikasi ini
-        $user = User::where(config('sso.column'), $value)->first();
+        $user = User::where(config('sso.column'), $value)->where('is_active', true)->first();
 
         // 3. Kalau tidak ada, tolak (lebih aman untuk data HR)
         abort_if(!$user, 403, 'Akun Anda belum terdaftar di aplikasi ini.');
