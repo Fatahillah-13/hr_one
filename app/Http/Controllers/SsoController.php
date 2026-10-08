@@ -38,6 +38,7 @@ class SsoController extends Controller
 
         // 4. Login ke Laravel seperti biasa
         Auth::login($user);
+        session()->regenerate();
 
         $idToken = $sso->accessTokenResponseBody['id_token'] ?? null;
         session([

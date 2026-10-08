@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\SsoController;
 use App\Http\Controllers\ProfileController;
 use App\Models\App;
 use App\Models\Division;
