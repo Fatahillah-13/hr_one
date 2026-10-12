@@ -15,7 +15,6 @@ export default function Search({ value = "", onChange, onSubmit, placeholder = "
 
     const suggestions = useMemo(() => apps.map((app) => ({ app, id: app.id, title: app.name, division: app.divisions?.map((d) => d.name).join(", ") || "-", href: app.launch_url })), [apps]);
 
-<<<<<<< HEAD
     useEffect(() => { if (isControlled) setInternalValue(value ?? ""); }, [isControlled, value]);
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -26,18 +25,6 @@ export default function Search({ value = "", onChange, onSubmit, placeholder = "
         document.addEventListener("mousedown", handleOutsideClick);
         return () => { window.removeEventListener("keydown", handleKeyDown); document.removeEventListener("mousedown", handleOutsideClick); };
     }, []);
-=======
-  const suggestions = useMemo(() => {
-    return apps.map((app, i) => ({
-      id: app.id,
-      title: app.name,
-      division: app.divisions?.map(d => d.name).join(', ') || '-',
-      initials: app.name?.substring(0, 2).toUpperCase(),
-      color: COLORS[i % COLORS.length],
-      href: app.app_link,
-    }));
-  }, [apps]);
->>>>>>> origin/main
 
     const currentValue = !isControlled || value === undefined || value === null ? internalValue : value;
     const filteredSuggestions = useMemo(() => {
