@@ -31,7 +31,7 @@ class SettingsController extends Controller
         return Inertia::render('Settings/Settings', [
             'users' => $users,
             'roles' => Role::select('id', 'name')->get(),
-            'divisions' => Division::withCount(['apps', 'users'])->orderBy('name')->get(),
+            'divisions' => Division::withCount(['apps', 'users'])->orderBy('sort_order')->orderBy('name')->get(),
             'apps' => App::with('divisions')->get(),
             // Tab IT Call: agent beserta akun HR One yang terhubung, dan pilihan akun.
             'itAgents' => fn () => ItAgent::with('user:id,name,username')->ordered()->get()

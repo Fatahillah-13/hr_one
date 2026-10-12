@@ -22,8 +22,8 @@ export default function DivisionFormFields({ data, setData, errors, isEdit, slug
                 </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Category Name" htmlFor="division-name" error={errors.name}>
+            <div className="grid gap-3 sm:grid-cols-3">
+                <Field label="Category Name" htmlFor="division-name" error={errors.name} className="sm:col-span-2">
                     <input
                         id="division-name"
                         className={inputCls}
@@ -33,6 +33,19 @@ export default function DivisionFormFields({ data, setData, errors, isEdit, slug
                         required
                     />
                 </Field>
+                <Field label="Nomor Urutan" htmlFor="division-sort-order" error={errors.sort_order}>
+                    <input
+                        id="division-sort-order"
+                        type="number"
+                        min="1"
+                        className={inputCls}
+                        value={data.sort_order ?? ''}
+                        onChange={(e) => setData('sort_order', e.target.value)}
+                        placeholder="Contoh: 1, 2, ..."
+                    />
+                </Field>
+            </div>
+            <div>
                 <Field label="Slug" htmlFor="division-slug" error={errors.slug}>
                     <input
                         id="division-slug"

@@ -7,6 +7,7 @@ export default function Create({ open, setOpen }) {
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         name: '',
         slug: '',
+        sort_order: '',
     })
     const [slugTouched, setSlugTouched] = useState(false)
 

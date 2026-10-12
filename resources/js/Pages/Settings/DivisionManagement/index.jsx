@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Badge, Button, Confirm, Panel, Pill, RowMenu } from '@/Components/hr/ui'
 import Icon from '@/Components/hr/Icon'
 import Create from './create'
@@ -11,6 +11,30 @@ export default function DivisionManagement({ divisions = [] }) {
     const [editingDivision, setEditingDivision] = useState(null)
     const [deleting, setDeleting] = useState(null)
     const [busy, setBusy] = useState(false)
+    const [items, setItems] = useState(divisions)
+    const [reordering, setReordering] = useState(false)
+
+    useEffect(() => {
+        setItems(divisions)
+    }, [divisions])
+
+    const move = (fromIdx, toIdx) => {
+        if (toIdx < 0 || toIdx >= items.length || reordering) return
+        const next = [...items]
+        const [moved] = next.splice(fromIdx, 1)
+        next.splice(toIdx, 0, moved)
+        setItems(next)
+        setReordering(true)
+
+        router.post(
+            route('settings.divisions.reorder'),
+            { ids: next.map((d) => d.id) },
+            {
+                preserveScroll: true,
+                onFinish: () => setReordering(false),
+            }
+        )
+    }
 
     const handleDelete = () => {
         if (!deleting) return
@@ -32,19 +56,27 @@ export default function DivisionManagement({ divisions = [] }) {
                         Menu Kategori Navigasi
                     </h1>
                     <p className="text-[13px] text-slate-500">
-                        Menu kategori tab yang tampil di bilah navigasi Beranda HR One dan filter aplikasi.
+                        Menu kategori tab yang tampil di bilah navigasi Beranda HR One dan filter aplikasi. Gunakan tombol panah untuk mengubah posisi urutan tab.
                     </p>
                 </div>
-                <Button onClick={() => setOpen(true)}>
-                    <Icon name="plus" className="h-4 w-4" />
-                    Tambah Menu Kategori
-                </Button>
+                <div className="flex items-center gap-3">
+                    {reordering && (
+                        <span className="text-xs font-semibold text-[#2F4BD8] animate-pulse">
+                            Menyimpan urutan...
+                        </span>
+                    )}
+                    <Button onClick={() => setOpen(true)}>
+                        <Icon name="plus" className="h-4 w-4" />
+                        Tambah Menu Kategori
+                    </Button>
+                </div>
             </div>
 
             <div className="overflow-x-auto border-t border-[#E7EAF3]">
                 <table className="w-full text-left text-[13.5px]">
                     <thead>
                         <tr className="bg-[#FAFBFE] text-[11px] font-extrabold uppercase tracking-[.08em] text-slate-500">
+                            <th className="w-28 px-4 py-3 text-center">Posisi</th>
                             <th className="px-5 py-3">Nama Menu Kategori</th>
                             <th className="px-4 py-3">Slug</th>
                             <th className="px-4 py-3">Jumlah Aplikasi</th>
@@ -54,7 +86,7 @@ export default function DivisionManagement({ divisions = [] }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {divisions.map((div, i) => {
+                        {items.map((div, i) => {
                             const isSystem = (div.slug || '').toLowerCase() === 'all'
                             const appCount = div.apps_count ?? 0
                             const userCount = div.users_count ?? 0
@@ -65,6 +97,31 @@ export default function DivisionManagement({ divisions = [] }) {
                                     className="hx-row-in border-t border-[#F1F3F9] transition-colors hover:bg-[#F8FAFF]"
                                     style={{ animationDelay: `${Math.min(i * 0.03, 0.3)}s` }}
                                 >
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="inline-flex items-center gap-1 rounded-lg border border-[#E0E5F2] bg-white p-0.5 shadow-xs">
+                                            <button
+                                                type="button"
+                                                disabled={i === 0 || reordering}
+                                                onClick={() => move(i, i - 1)}
+                                                className="grid h-7 w-7 place-items-center rounded text-slate-600 transition-colors hover:bg-[#EEF2FF] hover:text-[#2F4BD8] disabled:cursor-not-allowed disabled:opacity-25"
+                                                title="Pindah ke atas"
+                                            >
+                                                <Icon name="up" className="h-3.5 w-3.5" />
+                                            </button>
+                                            <span className="min-w-[20px] text-center font-mono text-[12px] font-bold text-slate-700">
+                                                {i + 1}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                disabled={i === items.length - 1 || reordering}
+                                                onClick={() => move(i, i + 1)}
+                                                className="grid h-7 w-7 place-items-center rounded text-slate-600 transition-colors hover:bg-[#EEF2FF] hover:text-[#2F4BD8] disabled:cursor-not-allowed disabled:opacity-25"
+                                                title="Pindah ke bawah"
+                                            >
+                                                <Icon name="down" className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
+                                    </td>
                                     <td className="px-5 py-3">
                                         <div className="flex items-center gap-3">
                                             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF2FF] text-[#2F4BD8]">
@@ -127,9 +184,9 @@ export default function DivisionManagement({ divisions = [] }) {
                                 </tr>
                             )
                         })}
-                        {divisions.length === 0 && (
+                        {items.length === 0 && (
                             <tr>
-                                <td colSpan={6} className="px-5 py-10 text-center text-slate-500">
+                                <td colSpan={7} className="px-5 py-10 text-center text-slate-500">
                                     Belum ada menu kategori.
                                 </td>
                             </tr>

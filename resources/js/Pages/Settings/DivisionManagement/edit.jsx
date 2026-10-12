@@ -6,6 +6,7 @@ import DivisionFormFields from './form-fields'
 const fromDivision = (division) => ({
     name: division?.name || '',
     slug: division?.slug || '',
+    sort_order: division?.sort_order ?? '',
 })
 
 export default function Edit({ open, setOpen, division }) {

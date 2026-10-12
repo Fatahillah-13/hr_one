@@ -15,7 +15,7 @@ class DashboardController extends Controller
         // Hanya aplikasi yang boleh diakses user, dan hanya kolom yang aman
         // untuk dikirim ke browser (tanpa sso_client_id / redirect_uri).
         $apps = $user->accessibleApps()
-            ->with('divisions:id,name,slug')
+            ->with('divisions:id,name,slug,sort_order')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'description', 'icon', 'app_link', 'sso_enabled'])
@@ -30,11 +30,14 @@ class DashboardController extends Controller
                 // aplikasi lain di tab baru.
                 'launch_url' => route('sso.launch', $app->slug, absolute: ! $app->isInternalModule()),
                 'is_internal' => $app->isInternalModule(),
-                'divisions' => $app->divisions->map->only(['id', 'name', 'slug'])->values(),
+                'divisions' => $app->divisions->map->only(['id', 'name', 'slug', 'sort_order'])->values(),
             ]);
 
-        // Tab divisi: hanya divisi yang punya aplikasi yang bisa diakses user.
-        $divisions = $apps->pluck('divisions')->flatten(1)->unique('id')->sortBy('name')->values();
+        // Tab divisi: hanya divisi yang punya aplikasi yang bisa diakses user (diurutkan berdasarkan sort_order lalu name).
+        $divisions = $apps->pluck('divisions')->flatten(1)->unique('id')->sortBy([
+            ['sort_order', 'asc'],
+            ['name', 'asc'],
+        ])->values();
 
         $recentIds = $user->recentAppIds();
         $recentApps = $apps->whereIn('id', $recentIds)
