@@ -1,6 +1,6 @@
 # HR One — HRIS System V.2.0
 
-A centralized Human Resource Information System (HRIS) portal built with Laravel and React. Login once to access all integrated HR applications based on user roles and divisions through a secure SSO (Single Sign-On) flow using RS256 JWT tokens.
+A centralized Human Resource Information System (HRIS) portal built with Laravel and React. Login once via Keycloak SSO (OpenID Connect) to access all integrated HR applications based on user roles and divisions.
 
 ## Tech Stack
 
@@ -11,7 +11,7 @@ A centralized Human Resource Information System (HRIS) portal built with Laravel
 | **UI**         | Radix UI, Lucide Icons, Motion 12 (animation)       |
 | **Build Tool** | Vite 7                                               |
 | **Database**   | MySQL                                                |
-| **Auth**       | Laravel Sanctum, RS256 JWT (SSO)                     |
+| **Auth**       | Laravel Session, Keycloak SSO (OpenID Connect)       |
 
 ## Features
 
@@ -27,27 +27,25 @@ A centralized Human Resource Information System (HRIS) portal built with Laravel
 - Bulk user import via CSV/Excel template
 
 ### Single Sign-On (SSO)
-- RS256 JWT-based SSO handoff to integrated apps
-- Secure code/state exchange flow with expiration
-- Per-app SSO configuration (client ID, secret, redirect URI)
-- Public/private key pair configuration
+- Centralized login via Keycloak (OpenID Connect) with Laravel Socialite
+- Automatic session refresh using Keycloak refresh tokens
+- Single logout (front-channel + backchannel logout support)
+- Per-user identity mapping via configurable claim/column (e.g. email)
 
 ### Admin Settings
 - User management (create, edit, delete, import)
-- App management (create, edit, delete, SSO config)
+- App management (create, edit, delete)
 - Role & division overview
 
-## SSO Integration Flow
+## SSO Login Flow (Keycloak)
 
 ```
-1. User clicks an app on the dashboard
-2. HR One creates a SsoLoginHandoff (code + state) and redirects to the app
-3. The target app calls POST /api/sso/exchange with client credentials + code + state
-4. HR One validates credentials, verifies the handoff, and returns a signed JWT
-5. The target app verifies the JWT with the public key and establishes a session
+1. User opens /login → redirected to Keycloak
+2. Keycloak authenticates the user and redirects back to /auth/callback
+3. HR One maps the configured claim (SSO_CLAIM) to a local user column (SSO_COLUMN) and logs them in
+4. The Keycloak session is kept fresh via refresh token checks (CheckSsoSession middleware)
+5. Logout ends both the Laravel session and the Keycloak session (front-channel + backchannel logout)
 ```
-
-See [`docs/laravel-sso-consumer-example.md`](docs/laravel-sso-consumer-example.md) for a full integration guide.
 
 ## Data Models
 
@@ -56,10 +54,9 @@ See [`docs/laravel-sso-consumer-example.md`](docs/laravel-sso-consumer-example.m
 | User             | Employees with role, division & login tracking   |
 | Role             | User roles (Admin, Member)                       |
 | Division         | Organizational divisions (8 seeded)              |
-| App              | Integrated HR applications with SSO config       |
+| App              | Integrated HR applications                       |
 | Category         | App categories                                   |
 | RoleDivisionApp  | Role-division-app permission assignments         |
-| SsoLoginHandoff  | Temporary SSO handoff tokens (code/state/expiry) |
 
 ## Project Structure
 
@@ -69,7 +66,6 @@ app/
 ├── Http/Middleware/         # AdminMiddleware, HandleInertiaRequests
 ├── Imports/                 # UsersImport (CSV/Excel)
 ├── Models/                  # Eloquent models
-├── Services/                # SsoJwtService, SsoLoginService
 resources/js/
 ├── Pages/
 │   ├── Dashboard.jsx        # Main portal dashboard
@@ -78,13 +74,12 @@ resources/js/
 │   └── Settings/
 │       ├── Settings.jsx     # Admin dashboard
 │       ├── UserManagement/  # User CRUD + import
-│       └── AppManagement/   # App CRUD + SSO config
+│       └── AppManagement/   # App CRUD
 ├── Layouts/                 # Authenticated & Guest layouts
 └── Components/              # Navbar, Sidebar, AppCards, forms, etc.
 routes/
-├── web.php                  # Dashboard, SSO launch, profile
-├── api.php                  # SSO token exchange endpoint
-├── auth.php                 # Authentication routes
+├── web.php                  # Dashboard, profile
+├── auth.php                 # Authentication routes (Keycloak SSO)
 └── settings.php             # Admin settings (users, apps)
 ```
 
@@ -116,23 +111,18 @@ php artisan serve
 npm run dev
 ```
 
-### SSO Key Setup
+### Keycloak SSO Setup
 
-Generate an RSA key pair for JWT signing:
-
-```bash
-openssl genrsa -out storage/keys/private.pem 2048
-openssl rsa -in storage/keys/private.pem -pubout -out storage/keys/public.pem
-```
-
-Add to `.env`:
+Configure your Keycloak client credentials in `.env`:
 
 ```env
-SSO_PRIVATE_KEY_PATH=storage/keys/private.pem
-SSO_PUBLIC_KEY_PATH=storage/keys/public.pem
-SSO_ISSUER=https://your-hr-one-domain.com
-SSO_CODE_TTL=60
-SSO_JWT_TTL=300
+KEYCLOAK_CLIENT_ID=hr_one
+KEYCLOAK_CLIENT_SECRET=your-client-secret
+KEYCLOAK_REDIRECT_URI="${APP_URL}/auth/callback"
+KEYCLOAK_BASE_URL=https://your-keycloak-domain.com
+KEYCLOAK_REALM=your-realm
+SSO_CLAIM=email
+SSO_COLUMN=email
 ```
 
 ### Default Credentials

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\SsoController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
@@ -11,13 +12,21 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    // Registrasi mandiri sengaja ditiadakan: akun dibuat oleh Admin
-    // lewat Settings > Users atau import Excel.
+    Route::get('register', [SsoController::class, 'redirect'])
+        ->name('register');
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
+    // Route::post('register', [RegisteredUserController::class, 'store']);
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    // Route::get('login', [AuthenticatedSessionController::class, 'create'])
+    //     ->name('login');
+
+    Route::get('/auth/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
+    Route::get('/auth/callback', [SsoController::class, 'callback']);
+    Route::get('/login', fn () => redirect()->route('sso.redirect'))->name('login');
+
+    Route::post('/auth/backchannel-logout', [SsoController::class, 'backchannel']);
+
+    // Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
@@ -51,6 +60,8 @@ Route::middleware('auth')->group(function () {
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
+    // Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
+    //     ->name('logout');
+    Route::post('logout', [SsoController::class, 'logout'])
         ->name('logout');
 });
