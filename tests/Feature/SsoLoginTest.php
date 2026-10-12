@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\App;
+use App\Models\Division;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -77,8 +79,8 @@ KEY;
 
     public function test_authenticated_user_can_launch_an_sso_enabled_app(): void
     {
-        $user = User::factory()->create();
         $app = $this->makeSsoApp();
+        $user = $this->makeUserFor($app);
 
         $response = $this->actingAs($user)->get(route('sso.launch', $app));
 
@@ -111,8 +113,8 @@ KEY;
 
     public function test_exchange_rejects_invalid_client_credentials(): void
     {
-        $user = User::factory()->create();
         $app = $this->makeSsoApp();
+        $user = $this->makeUserFor($app);
         $launchResponse = $this->actingAs($user)->get(route('sso.launch', $app));
         parse_str(parse_url($launchResponse->headers->get('Location'), PHP_URL_QUERY) ?? '', $query);
 
@@ -124,7 +126,7 @@ KEY;
         ]);
 
         $response->assertStatus(401)->assertJson([
-            'message' => 'Invalid SSO client credentials.',
+            'message' => 'Invalid SSO request.',
         ]);
     }
 
@@ -132,8 +134,8 @@ KEY;
     {
         Carbon::setTestNow(now());
 
-        $user = User::factory()->create();
         $app = $this->makeSsoApp();
+        $user = $this->makeUserFor($app);
         $launchResponse = $this->actingAs($user)->get(route('sso.launch', $app));
         parse_str(parse_url($launchResponse->headers->get('Location'), PHP_URL_QUERY) ?? '', $query);
 
@@ -146,8 +148,8 @@ KEY;
             'state' => $query['state'],
         ]);
 
-        $response->assertStatus(422)->assertJson([
-            'message' => 'This SSO handoff code has expired.',
+        $response->assertStatus(400)->assertJson([
+            'message' => 'Invalid SSO request.',
         ]);
 
         Carbon::setTestNow();
@@ -155,8 +157,8 @@ KEY;
 
     public function test_exchange_rejects_reused_code(): void
     {
-        $user = User::factory()->create();
         $app = $this->makeSsoApp();
+        $user = $this->makeUserFor($app);
         $launchResponse = $this->actingAs($user)->get(route('sso.launch', $app));
         parse_str(parse_url($launchResponse->headers->get('Location'), PHP_URL_QUERY) ?? '', $query);
 
@@ -169,21 +171,21 @@ KEY;
 
         $this->postJson(route('api.sso.exchange'), $payload)->assertOk();
         $this->postJson(route('api.sso.exchange'), $payload)
-            ->assertStatus(422)
+            ->assertStatus(400)
             ->assertJson([
-                'message' => 'This SSO handoff code has already been used.',
+                'message' => 'Invalid SSO request.',
             ]);
     }
 
     public function test_exchange_returns_a_signed_jwt_with_expected_claims(): void
     {
-        $user = User::factory()->create([
+        $app = $this->makeSsoApp([
+            'sso_client_id' => 'payroll-local',
+        ]);
+        $user = $this->makeUserFor($app, [
             'username' => 'joko',
             'name' => 'Joko Widodo',
             'email' => 'joko@example.test',
-        ]);
-        $app = $this->makeSsoApp([
-            'sso_client_id' => 'payroll-local',
         ]);
         $launchResponse = $this->actingAs($user)->get(route('sso.launch', $app));
         parse_str(parse_url($launchResponse->headers->get('Location'), PHP_URL_QUERY) ?? '', $query);
@@ -209,9 +211,150 @@ KEY;
         $this->assertTrue($claims['exp'] > $claims['iat']);
     }
 
+    public function test_user_from_another_division_cannot_launch_app(): void
+    {
+        $app = $this->makeSsoApp();
+        $otherDivision = Division::create(['name' => 'Recruitment', 'slug' => 'recruitment']);
+        $user = User::factory()->create(['division_id' => $otherDivision->id]);
+
+        $this->actingAs($user)->get(route('sso.launch', $app))->assertForbidden();
+
+        $this->assertDatabaseCount('sso_login_handoffs', 0);
+    }
+
+    public function test_user_without_division_cannot_launch_app(): void
+    {
+        $app = $this->makeSsoApp();
+        $user = User::factory()->create(['division_id' => null]);
+
+        $this->actingAs($user)->get(route('sso.launch', $app))->assertForbidden();
+    }
+
+    public function test_admin_can_launch_any_active_app(): void
+    {
+        $app = $this->makeSsoApp();
+        $admin = User::factory()->create([
+            'role_id' => Role::create(['name' => Role::ADMIN])->id,
+            'division_id' => null,
+        ]);
+
+        $this->actingAs($admin)->get(route('sso.launch', $app))->assertRedirect();
+        $this->assertDatabaseCount('sso_login_handoffs', 1);
+    }
+
+    public function test_inactive_app_cannot_be_launched(): void
+    {
+        $app = $this->makeSsoApp();
+        $user = $this->makeUserFor($app);
+        $app->forceFill(['is_active' => false])->save();
+
+        $this->actingAs($user)->get(route('sso.launch', $app))->assertForbidden();
+    }
+
+    public function test_exchange_rejects_user_deactivated_after_launch(): void
+    {
+        $app = $this->makeSsoApp();
+        $user = $this->makeUserFor($app);
+        $launchResponse = $this->actingAs($user)->get(route('sso.launch', $app));
+        parse_str(parse_url($launchResponse->headers->get('Location'), PHP_URL_QUERY) ?? '', $query);
+
+        $user->forceFill(['is_active' => false])->save();
+
+        $this->postJson(route('api.sso.exchange'), [
+            'client_id' => $app->sso_client_id,
+            'client_secret' => 'very-secret-123',
+            'code' => $query['code'],
+            'state' => $query['state'],
+        ])->assertStatus(403)->assertJson(['message' => 'Invalid SSO request.']);
+    }
+
+    public function test_exchange_rejects_user_moved_to_other_division_after_launch(): void
+    {
+        $app = $this->makeSsoApp();
+        $user = $this->makeUserFor($app);
+        $launchResponse = $this->actingAs($user)->get(route('sso.launch', $app));
+        parse_str(parse_url($launchResponse->headers->get('Location'), PHP_URL_QUERY) ?? '', $query);
+
+        $other = Division::create(['name' => 'IT', 'slug' => 'it']);
+        $user->forceFill(['division_id' => $other->id])->save();
+
+        $this->postJson(route('api.sso.exchange'), [
+            'client_id' => $app->sso_client_id,
+            'client_secret' => 'very-secret-123',
+            'code' => $query['code'],
+            'state' => $query['state'],
+        ])->assertStatus(403);
+    }
+
+    public function test_exchange_endpoint_is_rate_limited(): void
+    {
+        $payload = [
+            'client_id' => 'nope',
+            'client_secret' => 'nope',
+            'code' => 'nope',
+            'state' => 'nope',
+        ];
+
+        for ($i = 0; $i < 30; $i++) {
+            $this->postJson(route('api.sso.exchange'), $payload)->assertStatus(401);
+        }
+
+        $this->postJson(route('api.sso.exchange'), $payload)->assertStatus(429);
+    }
+
+    public function test_non_sso_app_redirects_to_app_link_and_is_recorded_as_recent(): void
+    {
+        $app = $this->makeSsoApp([
+            'slug' => 'atk',
+            'sso_enabled' => false,
+            'sso_client_id' => null,
+            'sso_redirect_uri' => null,
+            'sso_client_secret_hash' => null,
+            'app_link' => 'http://10.10.100.193:8500',
+        ]);
+        $user = $this->makeUserFor($app);
+
+        $this->actingAs($user)->get(route('sso.launch', $app))
+            ->assertRedirect('http://10.10.100.193:8500');
+
+        $this->assertDatabaseHas('user_recent_apps', ['user_id' => $user->id, 'app_id' => $app->id]);
+        $this->assertDatabaseCount('sso_login_handoffs', 0);
+    }
+
+    public function test_non_sso_app_is_also_protected_by_division(): void
+    {
+        $app = $this->makeSsoApp([
+            'slug' => 'atk',
+            'sso_enabled' => false,
+            'sso_client_id' => null,
+            'app_link' => 'http://10.10.100.193:8500',
+        ]);
+        $user = User::factory()->create(['division_id' => null]);
+
+        $this->actingAs($user)->get(route('sso.launch', $app))->assertForbidden();
+    }
+
+    public function test_opening_same_app_twice_keeps_single_recent_row(): void
+    {
+        $app = $this->makeSsoApp();
+        $user = $this->makeUserFor($app);
+
+        $this->actingAs($user)->get(route('sso.launch', $app));
+        $this->actingAs($user)->get(route('sso.launch', $app));
+
+        $this->assertDatabaseCount('user_recent_apps', 1);
+    }
+
+    protected function makeUserFor(App $app, array $attributes = []): User
+    {
+        return User::factory()->create(array_merge([
+            'division_id' => $app->divisions()->value('divisions.id'),
+        ], $attributes));
+    }
+
     protected function makeSsoApp(array $overrides = []): App
     {
-        return App::create(array_merge([
+        $app = App::create(array_merge([
             'name' => 'Payroll',
             'slug' => 'payroll',
             'description' => 'Payroll system',
@@ -221,6 +364,11 @@ KEY;
             'sso_redirect_uri' => 'http://localhost:8001/sso/callback',
             'sso_client_secret_hash' => Hash::make('very-secret-123'),
         ], $overrides));
+
+        $division = Division::firstOrCreate(['slug' => 'payroll'], ['name' => 'Payroll']);
+        $app->divisions()->attach($division);
+
+        return $app;
     }
 
     protected function decodeJwtPayload(string $token): array

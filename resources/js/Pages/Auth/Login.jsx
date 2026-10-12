@@ -1,212 +1,120 @@
-import InputError from "@/Components/InputError";
-import { Head, useForm } from "@inertiajs/react";
-import { User, Eye, EyeOff, Lock } from "lucide-react";
-import { useEffect, useState } from "react";
-import logoImage from "../../../images/logo.png";
-import factoryMask from "../../../shapes/factoryMask.svg";
-import factoryImage from "../../../images/factoryImage.png";
-import { Magnetic } from "../../../../components/animate-ui/primitives/effects/magnetic";
+import InputError from '@/Components/InputError';
+import { Head, useForm } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
+import logoImage from '../../../images/logo.png';
+import factoryMask from '../../../shapes/factoryMask.svg';
+import factoryImage from '../../../images/factoryImage.png';
+import Icon from '@/Components/hr/Icon';
+import { cn } from '@/lib/utils';
 
-
+// Login HR One. Fitur sama: username + password, lihat/sembunyikan password, jam berjalan,
+// pesan status & error, foto pabrik yang bergerak mengikuti mouse, label versi.
 export default function Login({ status }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        username: "",
-        password: "",
-    });
+    const { data, setData, post, processing, errors, reset } = useForm({ username: '', password: '' });
     const [showPassword, setShowPassword] = useState(false);
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const [now, setNow] = useState(new Date());
+    const [shake, setShake] = useState(0);
+    const art = useRef(null);
+    const mag = useRef(null);
 
     useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        const timer = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
+    useEffect(() => { if (errors.username || errors.password) setShake((n) => n + 1); }, [errors]);
 
-    const formattedTime = currentTime.toLocaleDateString("id-ID", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    }) + " — " + currentTime.toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-    });
+    const formattedTime = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+        + ' — ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     const submit = (e) => {
         e.preventDefault();
-
-        post(route("login"), {
-            onFinish: () => reset("password"),
-        });
+        post(route('login'), { onFinish: () => reset('password') });
     };
 
+    // Efek "magnetic": foto sedikit mengikuti posisi mouse (hanya perangkat dengan mouse).
+    const onMove = (e) => {
+        if (!mag.current || !window.matchMedia('(hover: hover)').matches) return;
+        const r = art.current.getBoundingClientRect();
+        const x = (e.clientX - r.left - r.width / 2) * 0.06;
+        const y = (e.clientY - r.top - r.height / 2) * 0.06;
+        mag.current.style.transform = `translate(${x}px, ${y}px) rotateX(${-y / 3}deg) rotateY(${x / 3}deg)`;
+    };
+    const onLeave = () => { if (mag.current) mag.current.style.transform = ''; };
+
+    const field = 'flex cursor-text items-center gap-3 rounded-2xl border-[1.5px] border-slate-200 bg-slate-50 px-3.5 py-2.5 transition focus-within:border-[#4C6FFF] focus-within:bg-white focus-within:shadow-[0_0_0_5px_rgba(76,111,255,.14)]';
+    const fieldIc = 'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#EEF2FF] text-[#4C6FFF] transition duration-300 group-focus-within:-rotate-6 group-focus-within:scale-105 group-focus-within:bg-[#4C6FFF] group-focus-within:text-white';
+
     return (
-        <div
-            className="min-h-screen bg-cover bg-center px-4 py-8 md:px-10 md:py-12 lg:px-16 lg:py-20"
-            style={{
-                backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('${factoryImage}')`,
-            }}
-        >
+        <div className="relative isolate grid min-h-screen place-items-center overflow-hidden px-4 py-7 font-sans"
+            style={{ background: 'radial-gradient(120% 90% at 0% 0%, #5B7BFF 0%, #2F4BD8 45%, #1C2870 100%)' }}>
             <Head title="Login" />
-            <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1380px] items-center justify-center rounded-2xl bg-white p-6 md:p-8 lg:p-10">
-                <div className="grid w-full grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
-                    <div className="mx-auto flex w-full max-w-[600px] flex-col px-1 sm:px-6 lg:px-7">
-                        <div className="mb-8 w-full max-w-[246px]">
-                            <img
-                                src={logoImage}
-                                alt="HR One System"
-                                className="h-auto w-full"
-                            />
-                        </div>
+            <span className="pointer-events-none absolute inset-0 opacity-[.13] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:22px_22px]" />
+            <span className="hx-blob -right-32 -top-44 h-[460px] w-[460px] bg-[radial-gradient(circle,rgba(255,255,255,.22),transparent_70%)]" />
+            <span className="hx-blob -bottom-40 -left-28 h-[340px] w-[340px] bg-[radial-gradient(circle,rgba(143,163,255,.55),transparent_70%)] [animation-delay:-4s]" />
+            <span className="hx-blob -top-16 left-[46%] h-[200px] w-[200px] bg-[radial-gradient(circle,rgba(56,189,248,.35),transparent_70%)] [animation-delay:-8s]" />
 
-                        <div className="w-full">
-                            <p className="text-[32px] font-bold leading-tight text-black">
-                                Halo 👋
-                            </p>
-                            <h1 className="mt-1 text-xl text-[#5E6366]">
-                                {formattedTime}
-                            </h1>
-                            <p className="mt-2 text-base text-black">
-                                Login sekali untuk mengakses seluruh sistem
-                            </p>
-                        </div>
+            <div className="hx-pop relative z-[1] grid w-full max-w-[1020px] gap-2.5 rounded-[30px] border border-white/25 bg-white/10 p-2.5 shadow-[0_40px_80px_-30px_rgba(10,20,70,.7)] backdrop-blur-xl md:grid-cols-[1fr_1.05fr]">
+                <div className="flex flex-col gap-5 rounded-[22px] bg-white px-6 py-8 sm:px-10 sm:py-10">
+                    <img src={logoImage} alt="HR One System" className="hx-up h-12 w-auto self-start sm:h-14" />
+                    <div className="hx-up [animation-delay:.08s]">
+                        <p className="text-[15px] font-bold text-[#2F4BD8]">Halo <span className="hx-wave">👋</span></p>
+                        <h1 className="mt-1 text-xl font-extrabold tabular-nums tracking-tight text-[#27272E] sm:text-2xl">{formattedTime}</h1>
+                        <p className="mt-1 text-slate-500">Login sekali untuk mengakses seluruh sistem</p>
+                    </div>
 
-                        {status && (
-                            <div className="mt-4 text-sm font-medium text-green-600">
-                                {status}
-                            </div>
-                        )}
+                    {status && <div className="hx-pop rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">{status}</div>}
 
-                        <form onSubmit={submit} className="mt-6 space-y-4">
-                            <div className="h-[58px] rounded-lg border border-[#CFD3D4] px-4 py-2">
-                                <div className="flex h-full items-center gap-3">
-                                    <User
-                                        size={20}
-                                        className="shrink-0 text-[#5E6366]"
-                                        strokeWidth={1.8}
-                                    />
-                                    <div className="flex min-w-0 flex-1 flex-col justify-between">
-                                        <label
-                                            htmlFor="username"
-                                            className="text-xs font-normal leading-none text-[#5E6366]"
-                                        >
-                                            username
-                                        </label>
-                                        <input
-                                            id="username"
-                                            type="text"
-                                            name="username"
-                                            value={data.username}
-                                            autoComplete="username"
-                                            className="mt-2 w-full border-0 bg-transparent p-0 text-base leading-none text-black placeholder:text-[#ABAFB1] focus:outline-none focus:ring-0"
-                                            placeholder="Isikan username anda"
-                                            onChange={(e) =>
-                                                setData("username", e.target.value)
-                                            }
-                                            autoFocus
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <InputError
-                                message={errors.username}
-                                className="mt-1"
-                            />
+                    <form key={shake} onSubmit={submit} className={cn('hx-up grid gap-3 [animation-delay:.16s]', shake > 0 && 'hx-shake')}>
+                        <label htmlFor="username" className={cn('group', field)}>
+                            <span className={fieldIc}><Icon name="user" className="h-5 w-5" /></span>
+                            <span className="grid min-w-0 flex-1">
+                                <small className="text-[10.5px] font-extrabold uppercase tracking-[.08em] text-slate-500">Username</small>
+                                <input id="username" type="text" name="username" value={data.username} autoComplete="username"
+                                    placeholder="Isikan username anda" onChange={(e) => setData('username', e.target.value)} autoFocus
+                                    className="border-0 bg-transparent p-0 py-0.5 text-[15px] text-[#27272E] placeholder:text-slate-400 focus:ring-0" />
+                            </span>
+                        </label>
+                        <InputError message={errors.username} />
 
-                            <div className="h-[58px] rounded-lg border border-[#CFD3D4] px-4 py-2">
-                                <div className="flex h-full items-center gap-3">
-                                    <Lock
-                                        size={20}
-                                        className="shrink-0 text-[#5E6366]"
-                                        strokeWidth={1.8}
-                                    />
-                                    <div className="flex min-w-0 flex-1 flex-col justify-between">
-                                        <label
-                                            htmlFor="password"
-                                            className="text-xs font-normal leading-none text-[#5E6366]"
-                                        >
-                                            Password
-                                        </label>
-                                        <input
-                                            id="password"
-                                            type={
-                                                showPassword
-                                                    ? "text"
-                                                    : "password"
-                                            }
-                                            name="password"
-                                            value={data.password}
-                                            autoComplete="current-password"
-                                            className="mt-2 w-full border-0 bg-transparent p-0 text-base leading-none text-black placeholder:text-[#ABAFB1] focus:outline-none focus:ring-0"
-                                            placeholder="Isikan password anda"
-                                            onChange={(e) =>
-                                                setData(
-                                                    "password",
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowPassword(
-                                                (visible) => !visible,
-                                            )
-                                        }
-                                        className="shrink-0 text-black"
-                                        aria-label={
-                                            showPassword
-                                                ? "Sembunyikan password"
-                                                : "Lihat password"
-                                        }
-                                    >
-                                        {showPassword ? (
-                                            <Eye size={16} strokeWidth={1.8} />
-                                        ) : (
-                                            <EyeOff
-                                                size={16}
-                                                strokeWidth={1.8}
-                                            />
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                            <InputError
-                                message={errors.password}
-                                className="mt-1"
-                            />
-
-                            <button
-                                type="submit"
-                                disabled={processing}
-                                className="w-full rounded-xl bg-[#5570F1] px-4 py-[17px] text-[20px] font-normal leading-none text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                Login
+                        <label htmlFor="password" className={cn('group', field)}>
+                            <span className={fieldIc}><Icon name="lock" className="h-5 w-5" /></span>
+                            <span className="grid min-w-0 flex-1">
+                                <small className="text-[10.5px] font-extrabold uppercase tracking-[.08em] text-slate-500">Password</small>
+                                <input id="password" type={showPassword ? 'text' : 'password'} name="password" value={data.password}
+                                    autoComplete="current-password" placeholder="Isikan password anda" onChange={(e) => setData('password', e.target.value)}
+                                    className="border-0 bg-transparent p-0 py-0.5 text-[15px] text-[#27272E] placeholder:text-slate-400 focus:ring-0" />
+                            </span>
+                            <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+                                <Icon name={showPassword ? 'eye' : 'eyeOff'} className="h-4 w-4" />
                             </button>
-                        </form>
-                    </div>
+                        </label>
+                        <InputError message={errors.password} />
 
-                    <div className="hidden w-full max-w-[650px] flex-col items-center justify-center gap-3 lg:flex">
-                        <Magnetic strength={0.3} range={150}>
-                            <div
-                                className="h-[450px] w-[364px] bg-cover bg-center"
-                                style={{
-                                    backgroundImage: `linear-gradient(rgba(0,0,0,0.05), rgba(0,0,0,0.05)), url('${factoryImage}')`,
-                                    WebkitMaskImage: `url('${factoryMask}')`,
-                                    maskImage: `url('${factoryMask}')`,
-                                    WebkitMaskSize: "cover",
-                                    maskSize: "cover",
-                                    WebkitMaskRepeat: "no-repeat",
-                                    maskRepeat: "no-repeat",
-                                    filter: "drop-shadow(0 24px 32px rgba(0, 0, 0, 0.12))",
-                                }}
-                            />
-                        </Magnetic>
-                        <p className="text-right text-base text-[#B8A9A9]">
-                            HRIS System V.2.0
-                        </p>
+                        <button type="submit" disabled={processing}
+                            className="group mt-1.5 flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-br from-[#5B7BFF] to-[#2F4BD8] px-4 py-3.5 text-[15px] font-extrabold text-white shadow-[0_16px_30px_-14px_rgba(47,75,216,.95)] transition hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-progress disabled:opacity-80 disabled:hover:translate-y-0">
+                            {processing ? <><span className="h-4 w-4 animate-spin rounded-full border-[3px] border-white/40 border-t-white" />Memeriksa…</> : <>Login<Icon name="out" className="h-4 w-4 transition-transform group-hover:translate-x-1" /></>}
+                        </button>
+                    </form>
+                </div>
+
+                <div ref={art} onMouseMove={onMove} onMouseLeave={onLeave} className="relative hidden flex-col items-center justify-center gap-4 p-7 [perspective:900px] md:flex">
+                    <div ref={mag} className="relative aspect-[367.5/450] w-full max-w-[400px] transition-transform duration-300 [transform-style:preserve-3d]">
+                        <div className="hx-pop absolute inset-0 bg-cover bg-center [animation-delay:.15s]"
+                            style={{
+                                backgroundImage: `linear-gradient(rgba(0,0,0,0.05), rgba(0,0,0,0.05)), url('${factoryImage}')`,
+                                WebkitMaskImage: `url('${factoryMask}')`, maskImage: `url('${factoryMask}')`,
+                                WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+                                filter: 'drop-shadow(0 24px 32px rgba(0, 0, 0, 0.25))',
+                            }} />
+                        {[['shield', 'Single Sign-On', '-left-3.5 top-[18%]', '0s'], ['grid', 'Semua sistem HRD', '-right-3 top-[46%]', '-1.6s'], ['check', 'Satu akun', 'left-[8%] bottom-[6%]', '-3.2s']].map(([ic, t, pos, d]) => (
+                            <span key={t} className={cn('hx-bob absolute inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-white/95 px-3.5 py-2 text-[12.5px] font-extrabold text-[#27272E] shadow-[0_14px_28px_-12px_rgba(10,20,70,.55)]', pos)}
+                                style={{ animationDelay: d, transform: 'translateZ(40px)' }}>
+                                <Icon name={ic} className="h-[15px] w-[15px] text-[#4C6FFF]" />{t}
+                            </span>
+                        ))}
                     </div>
+                    <p className="text-[13px] font-bold tracking-[.08em] text-white/85">HRIS System V.2.0</p>
                 </div>
             </div>
         </div>

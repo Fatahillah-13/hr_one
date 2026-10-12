@@ -47,11 +47,11 @@ export default function UpdatePasswordForm({ className = '' }) {
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-[17px] font-extrabold text-[#27272E]">
                     Update Password
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-[13px] text-slate-500">
                     Ensure your account is using a long, random password to stay
                     secure.
                 </p>
@@ -95,6 +95,16 @@ export default function UpdatePasswordForm({ className = '' }) {
                         autoComplete="new-password"
                     />
 
+                    {(() => {
+                        const v = data.password || '';
+                        const sc = (v.length >= 8) + (v.length >= 12) + /[A-Z]/.test(v) + /[0-9]/.test(v) + /[^A-Za-z0-9]/.test(v);
+                        const col = sc < 2 ? '#F43F5E' : sc < 4 ? '#F59E0B' : '#22C55E';
+                        return (
+                            <span className="mt-2 block h-1 overflow-hidden rounded bg-[#F1F3F9]" aria-hidden="true">
+                                <i className="block h-full transition-all duration-300" style={{ width: `${sc * 20}%`, background: col }} />
+                            </span>
+                        );
+                    })()}
                     <InputError message={errors.password} className="mt-2" />
                 </div>
 
@@ -131,8 +141,8 @@ export default function UpdatePasswordForm({ className = '' }) {
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
-                            Saved.
+                        <p className="inline-flex items-center gap-1.5 text-sm font-bold text-green-700">
+                            ✓ Saved.
                         </p>
                     </Transition>
                 </div>

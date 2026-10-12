@@ -35,7 +35,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 class SsoCallbackController extends Controller
 {
@@ -58,7 +57,7 @@ class SsoCallbackController extends Controller
             'state' => $validated['state'],
         ]);
 
-        abort_unless($response->successful(), 401, $response->json('message', 'SSO exchange failed.'));
+        abort_unless($response->successful(), 401, 'Login SSO gagal. Silakan buka ulang dari HR One.');
 
         $claims = $this->jwtVerifier->verify(
             $response->json('access_token'),
@@ -67,15 +66,12 @@ class SsoCallbackController extends Controller
 
         abort_if(! ($claims['is_active'] ?? false), 403, 'User is inactive.');
 
-        $user = User::updateOrCreate(
-            ['external_sso_id' => $claims['sub']],
-            [
-                'username' => $claims['username'],
-                'name' => $claims['name'],
-                'email' => $claims['email'],
-                'password' => bcrypt(Str::random(32)),
-            ],
-        );
+        // PENTING: cocokkan ke user yang SUDAH ADA di aplikasi ini (username = NIK).
+        // Jangan membuat user baru otomatis: hak akses/role di aplikasi lama tetap
+        // dikelola di aplikasi lama, dan user yang tidak terdaftar harus ditolak.
+        $user = User::where('username', $claims['username'])->first();
+
+        abort_if(! $user, 403, 'Akun Anda belum terdaftar di aplikasi ini. Hubungi HRD-IT.');
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -87,11 +83,15 @@ class SsoCallbackController extends Controller
 
 ## JWT Verifier
 
-- Salin logika verifikasi `RS256` dari [`app/Services/SsoJwtService.php`](/d:/sistem/hr_one/app/Services/SsoJwtService.php) dan pakai hanya method verifikasinya.
+- Salin logika verifikasi `RS256` dari `app/Services/SsoJwtService.php` dan pakai hanya method verifikasinya.
 - Public key di app tujuan harus sama dengan pasangan private key yang dipakai `HR One`.
 - Cocokkan minimal `iss`, `aud`, `exp`, `nbf`, dan signature.
 
 ## Catatan
+
+- Code SSO hanya berlaku 60 detik dan sekali pakai. Exchange harus langsung dilakukan saat callback.
+- Semua kegagalan exchange mengembalikan pesan yang sama (`Invalid SSO request.`). Penyebab detail ada di log HR One (`storage/logs/laravel.log`, cari "SSO exchange ditolak").
+- Endpoint exchange dibatasi 30 request/menit per IP.
 
 - App tujuan tetap membuat session Laravel miliknya sendiri setelah JWT valid.
 - Jangan kirim `client_secret` dari frontend browser app tujuan. Exchange harus dilakukan dari backend app tujuan.

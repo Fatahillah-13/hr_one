@@ -30,6 +30,12 @@ class App extends Model
         ];
     }
 
+    /** Modul yang dibangun di dalam HR One sendiri (app_link berupa path, mis. "/hrd/employees"). */
+    public function isInternalModule(): bool
+    {
+        return str_starts_with((string) $this->app_link, '/') && ! $this->sso_enabled;
+    }
+
     public function divisions()
     {
         return $this->belongsToMany(Division::class)->withTimestamps();

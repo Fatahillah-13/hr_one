@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\VirtualOffice\UnreadCounter;
+use App\Support\VirtualOffice\VoAccess;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,7 +37,20 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $user,
-                'isAdmin' => $user && $user->role && $user->role->name === 'Admin',
+                'isAdmin' => (bool) $user?->isAdmin(),
+                // Untuk tautan cepat "Master Karyawan" di navbar (hanya bila user punya akses modulnya).
+                'hasEmployees' => fn () => $user
+                    ? $user->accessibleApps()->where('slug', config('hrd.employees_app_slug'))->exists()
+                    : false,
+            ],
+            // Virtual Office: null bila user tidak punya akses (menu disembunyikan), selain itu jumlah chat belum dibaca.
+            'virtualOffice' => fn () => $user && VoAccess::canUse($user)
+                ? ['unread' => UnreadCounter::for($user->id)]
+                : null,
+            // Pesan sukses / hasil import dari server (dipakai halaman Settings > Users).
+            'flash' => fn () => [
+                'success' => $request->session()->get('success'),
+                'import_errors' => $request->session()->get('import_errors'),
             ],
         ];
     }

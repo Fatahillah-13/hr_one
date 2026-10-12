@@ -18,9 +18,10 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         $this->call([
-            UserSeeder::class,
+            // Role & divisi dulu, supaya admin langsung mendapat role Admin.
             RolesSeeder::class,
             DivisionsSeeder::class,
+            UserSeeder::class,
             CategoriesSeeder::class,
             AppsSeeder::class,
             RoleDivisionAppSeeder::class,

@@ -13,20 +13,34 @@ class SsoController extends Controller
 {
     public function __construct(
         protected SsoLoginService $ssoLoginService,
-    ) {
-    }
+    ) {}
 
+    /**
+     * Satu pintu untuk membuka aplikasi dari dashboard.
+     * - Aplikasi SSO: buat handoff code lalu redirect ke callback aplikasi.
+     * - Aplikasi non-SSO: redirect ke app_link.
+     * Keduanya dicek hak aksesnya dan dicatat ke "recent apps".
+     */
     public function launch(Request $request, App $app): RedirectResponse
     {
+        $user = $request->user();
+
+        if (! $app->sso_enabled) {
+            abort_unless($user->canAccessApp($app), 403, 'Anda tidak memiliki akses ke aplikasi ini.');
+            abort_unless($app->app_link, 404, 'Link aplikasi belum diatur.');
+
+            $user->recordAppOpened($app);
+
+            return redirect()->away($app->app_link);
+        }
+
         try {
-            $payload = $this->ssoLoginService->createLaunchPayload(
-                $app,
-                $request->user(),
-                $request->ip(),
-            );
+            $payload = $this->ssoLoginService->createLaunchPayload($app, $user, $request->ip());
         } catch (SsoException $exception) {
             abort($exception->status(), $exception->getMessage());
         }
+
+        $user->recordAppOpened($app);
 
         $separator = str_contains($app->sso_redirect_uri, '?') ? '&' : '?';
         $targetUrl = $app->sso_redirect_uri.$separator.http_build_query([
@@ -40,10 +54,10 @@ class SsoController extends Controller
     public function exchange(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'client_id' => ['required', 'string'],
-            'client_secret' => ['required', 'string'],
-            'code' => ['required', 'string'],
-            'state' => ['required', 'string'],
+            'client_id' => ['required', 'string', 'max:255'],
+            'client_secret' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:255'],
+            'state' => ['required', 'string', 'max:255'],
         ]);
 
         try {
@@ -52,6 +66,7 @@ class SsoController extends Controller
                 $validated['client_secret'],
                 $validated['code'],
                 $validated['state'],
+                $request->ip(),
             );
         } catch (SsoException $exception) {
             return response()->json([

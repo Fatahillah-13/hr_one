@@ -40,7 +40,7 @@ class AppManagementController extends Controller
             'slug' => 'required|string|max:255|unique:apps,slug',
             'description' => 'nullable|string|max:500',
             'icon' => 'nullable|string|max:255',
-            'app_link' => 'nullable|url|max:255',
+            'app_link' => ['nullable', 'max:1000', 'regex:/^(https?:\/\/\S+|\/[A-Za-z0-9\/_\-]*)$/'],
             'sso_enabled' => 'nullable|boolean',
             'sso_client_id' => [
                 Rule::requiredIf($request->boolean('sso_enabled')),
@@ -115,10 +115,10 @@ class AppManagementController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:apps,slug,' . $app->id,
+            'slug' => 'required|string|max:255|unique:apps,slug,'.$app->id,
             'description' => 'nullable|string|max:500',
             'icon' => 'nullable|string|max:255',
-            'app_link' => 'nullable|url|max:255',
+            'app_link' => ['nullable', 'max:1000', 'regex:/^(https?:\/\/\S+|\/[A-Za-z0-9\/_\-]*)$/'],
             'sso_enabled' => 'nullable|boolean',
             'sso_client_id' => [
                 Rule::requiredIf($request->boolean('sso_enabled')),

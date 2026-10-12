@@ -4,24 +4,13 @@ import HeaderSearch from "@/Components/HeaderSearch";
 import AppsCardList from "@/Components/AppsCardList";
 import AppsList from "@/Components/AppsList";
 
-export default function Dashboard({ apps = [], divisions = [] }) {
+export default function Dashboard({ apps = [], divisions = [], recentApps = [] }) {
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Dashboard
-                </h2>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Dashboard" />
-
-            <div className="pb-3">
-                <HeaderSearch apps={apps} />
-            </div>
-            {/* <div className="py-4 px-8">
-                <AppsCardList apps={apps} />
-            </div> */}
-            <div className="py-4 px-4">
+            <HeaderSearch apps={apps} divisions={divisions} />
+            <div className="relative z-[3] mx-auto grid max-w-[1240px] gap-6 px-4 pb-10 pt-1 sm:px-6">
+                {recentApps.length > 0 && <AppsCardList apps={recentApps} />}
                 <AppsList apps={apps} divisions={divisions} />
             </div>
         </AuthenticatedLayout>

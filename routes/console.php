@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -82,3 +83,21 @@ Artisan::command('sso:generate-keys {--force : Overwrite existing SSO key files}
 
     return \Symfony\Component\Console\Command\Command::SUCCESS;
 })->purpose('Generate RSA keys for HR One SSO signing');
+
+// IT Call: setiap pagi status semua agent kembali "Ready" dan catatannya dihapus.
+// Butuh `php artisan schedule:run` dijalankan tiap menit (Windows Task Scheduler), lihat BACA-DULU.md.
+Artisan::command('itcall:reset-status', function () {
+    $count = \App\Models\ItAgent::query()
+        ->where(fn ($q) => $q->where('status', '!=', 'ready')->orWhereNotNull('status_note'))
+        ->update(['status' => 'ready', 'status_note' => null, 'status_changed_at' => now(), 'updated_at' => now()]);
+
+    $this->info("Status {$count} agent IT Call direset ke Ready.");
+})->purpose('Reset status semua agent IT Call ke Ready');
+
+Schedule::command('itcall:reset-status')
+    ->dailyAt(config('itcall.reset_at', '07:00'))
+    ->timezone(config('app.timezone'))
+    ->withoutOverlapping();
+
+// Virtual Office: hapus bubble kedaluwarsa + status otomatis dari absensi.
+require __DIR__.'/console-virtual-office.php';

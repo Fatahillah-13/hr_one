@@ -20,31 +20,13 @@ class UserManagementController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        $users = User::with(['role', 'division'])
-            ->latest()
-            ->paginate(10)
-            ->through(fn ($user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'email' => $user->email,
-                'is_active' => $user->is_active,
-                'last_login_at' => $user->last_login_at,
-                'role' => $user->role ? [
-                    'id' => $user->role->id,
-                    'name' => $user->role->name,
-                ] : null,
-                'division' => $user->division ? [
-                    'id' => $user->division->id,
-                    'name' => $user->division->name,
-                ] : null,
-            ]);
+        // Daftar user ditampilkan di Settings (tab Users). Halaman ini dulu merender Settings tanpa data
+        // aplikasi/role/divisi sehingga halaman bisa kosong setelah tambah/hapus user. Pesan flash ikut dibawa.
+        session()->reflash();
 
-        return Inertia::render('Settings/Settings', [
-            'users' => $users,
-        ]);
+        return redirect()->route('settings', ['tab' => 'users']);
     }
 
     /**
@@ -117,7 +99,6 @@ class UserManagementController extends Controller
             'name' => $validated['name'],
             'username' => $validated['username'],
             'email' => $validated['email'],
-            'password' => isset($validated['password']) ? Hash::make($validated['password']) : $user->password,
             'role_id' => $validated['role_id'] ?? null,
             'division_id' => $validated['division_id'] ?? null,
             'is_active' => $validated['is_active'],
@@ -130,7 +111,7 @@ class UserManagementController extends Controller
         $user->update($payload);
 
         return redirect()
-            ->route('settings')
+            ->route('settings', ['tab' => 'users'])
             ->with('success', 'User berhasil diupdate.');
     }
 
@@ -152,7 +133,7 @@ class UserManagementController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:2048'],
         ]);
 
-        $import = new UsersImport();
+        $import = new UsersImport;
         Excel::import($import, $request->file('file'));
 
         $messages = [];

@@ -57,3 +57,49 @@
     --chart-5: 340 75% 55%
   }
 }
+
+/* ==========================================================================
+   HR One redesign: token warna, animasi, dan beberapa kelas bersama.
+   Komponen memakai kelas Tailwind biasa; yang di bawah ini hanya untuk
+   hal yang tidak praktis ditulis sebagai utility (keyframes, pola titik, dll.).
+   ========================================================================== */
+@layer base {
+  :root {
+    --hx-primary: #4C6FFF; --hx-primary-600: #3D5EF0; --hx-primary-700: #2F4BD8; --hx-primary-50: #EEF2FF; --hx-deep: #1C2870;
+    --hx-ink: #27272E; --hx-ink-2: #425466; --hx-muted: #64748B; --hx-line: #E7EAF3; --hx-bg: #F4F6FB;
+    --hx-ease: cubic-bezier(.22, 1, .36, 1);
+  }
+  body { background: var(--hx-bg); color: var(--hx-ink); -webkit-font-smoothing: antialiased; }
+}
+
+@layer components {
+  .hx-dots::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .12; background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 22px 22px; }
+  .hx-gradient { background: linear-gradient(120deg, #1C2870 0%, #2F4BD8 42%, #4C6FFF 75%, #8FA3FF 100%); }
+  .hx-blob { position: absolute; border-radius: 9999px; pointer-events: none; animation: hx-float 12s ease-in-out infinite; }
+  .hx-up { animation: hx-up .5s var(--hx-ease) both; }
+  .hx-pop { animation: hx-pop .3s var(--hx-ease) both; }
+  .hx-card-in { animation: hx-card .55s var(--hx-ease) both; }
+  .hx-row-in { animation: hx-row .35s var(--hx-ease) both; }
+  .hx-wave { display: inline-block; transform-origin: 70% 80%; animation: hx-wave 2.4s ease-in-out infinite; }
+  .hx-bob { animation: hx-bob 5s ease-in-out infinite; }
+  .hx-shake { animation: hx-shake .4s ease both; }
+  .hx-sheen { position: relative; overflow: hidden; }
+  .hx-sheen::after { content: ""; position: absolute; inset: 0; background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.45) 50%, transparent 70%); transform: translateX(-120%); }
+  .group:hover .hx-sheen::after { transform: translateX(120%); transition: transform .7s var(--hx-ease); }
+  .hx-scroll-none { scrollbar-width: none; } .hx-scroll-none::-webkit-scrollbar { display: none; }
+  .hx-mask-factory { -webkit-mask: url("../shapes/factoryMask.svg") center / 100% 100% no-repeat; mask: url("../shapes/factoryMask.svg") center / 100% 100% no-repeat; }
+}
+
+@keyframes hx-up { from { opacity: .001; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes hx-pop { from { opacity: .001; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes hx-card { from { opacity: .001; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes hx-row { from { opacity: .001; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@keyframes hx-float { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-18px, 14px) scale(1.12); } }
+@keyframes hx-wave { 0%, 60%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(16deg); } 20%, 40% { transform: rotate(-8deg); } }
+@keyframes hx-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -10px; } }
+@keyframes hx-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+@keyframes hx-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes hx-sheet-r { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes hx-sheet-l { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes hx-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
