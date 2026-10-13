@@ -43,7 +43,17 @@ class FirstLoginPasswordController extends Controller
         }
 
         $validated = $request->validate([
-            'password' => ['required', 'string', 'confirmed', Password::min(8)],
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                Password::min(8),
+                function ($attribute, $value, $fail) use ($user){
+                    if (Hash::check($value, $user->password)) {
+                        $fail('Password baru tidak boleh sama dengan password lama.');
+                    }
+                },
+            ],
         ], [
             'password.required' => 'Password baru wajib diisi.',
             'password.min' => 'Password minimal harus 8 karakter.',
