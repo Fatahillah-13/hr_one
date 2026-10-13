@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Hrd\EmployeeController as HrdEmployeeController;
+use App\Http\Controllers\ItCallController;
 use App\Http\Controllers\SsoController;
 use Illuminate\Support\Facades\Route;
 
