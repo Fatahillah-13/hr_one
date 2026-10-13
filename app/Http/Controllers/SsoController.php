@@ -33,38 +33,15 @@ class SsoController extends Controller
         // 2. Cari user di tabel aplikasi ini
         $user = User::where(config('sso.column'), $value)->where('is_active', true)->first();
 
-        // 3. Jika user punya aplikasi tujuan, arahkan ke sana
-        if ($app = $user->app ?? null) {
-            $target = $app->app_link;
-            if (! str_starts_with($target, '/') && ! preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//', $target)) {
-                if (preg_match('/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(:\d+)?/i', $target)) {
-                    $target = 'http://'.$target;
-                }
-            }
+        // 3. Kalau tidak ada, tolak (lebih aman untuk data HR)
+        abort_if(!$user, 403, 'Akun Anda belum terdaftar di aplikasi ini.');
 
-            return redirect()->away($target);
-        }
+        // 4. Login ke Laravel seperti biasa
+        Auth::login($user);
 
-        $idToken = $sso->accessTokenResponseBody['id_token'] ?? null;
         session([
-            'id_token' => $idToken,
-            'refresh_token' => $sso->refreshToken,
-            'sso_checked_at' => now()->timestamp,
-            ]);
-
-        // Ambil "sid" dari isi id_token
-        $payload = $idToken
-            ? json_decode(base64_decode(strtr(explode('.', $idToken)[1], '-_', '+/')), true)
-            : [];
-
-        if (!empty($payload['sid'])) {
-            DB::table('sso_sessions')->insert([
-                'sid'        => $payload['sid'],
-                'session_id' => session()->getId(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+            'id_token' => $sso->accessTokenResponseBody['id_token'] ?? null,
+        ]);
 
         return redirect()->intended('/dashboard');
     }
