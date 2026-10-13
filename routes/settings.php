@@ -3,6 +3,7 @@
 use App\Http\Controllers\AppManagementController;
 use App\Http\Controllers\DivisionManagementController;
 use App\Http\Controllers\ItAgentController;
+use App\Http\Controllers\ItCallController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
@@ -23,5 +24,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('settings/divisions', DivisionManagementController::class)->only(['store', 'update', 'destroy'])->names('settings.divisions');
 
     // Settings > IT Call: agent & nomor WhatsApp.
+    Route::resource('it-call', ItCallController::class)->names('it-call');
     Route::resource('settings/it-agents', ItAgentController::class)->only(['store', 'update', 'destroy'])->names('settings.it-agents');
 });
