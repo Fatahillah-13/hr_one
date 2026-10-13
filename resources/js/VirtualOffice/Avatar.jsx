@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import '../../css/virtual-office.css';
 
 export const STATUS = {
   online: { label: 'Online', ring: '#1E9E5A' },
   rapat: { label: 'Rapat', ring: '#C98A0C' },
   sibuk: { label: 'Sibuk', ring: '#D2453B' },
-  hadir: { label: 'Di kantor', ring: '#7C8FB8' }, // sudah absen masuk tapi belum membuka HR One
+  hadir: { label: 'Offline (Di kantor)', ring: '#94A3B8' }, // sudah absen masuk tapi belum membuka HR One
   offline: { label: 'Offline', ring: '#A3ABB2' },
 };
 
@@ -20,9 +21,17 @@ export const effectiveStatus = (user, onlineIds) => {
   return user.profile?.attendance?.state === 'present' ? 'hadir' : 'offline';
 };
 
-/** Bubble yang tampil: bubble buatan sendiri, atau keterangan absensi (Cuti, Sudah pulang) saat tidak online. */
-export const bubbleOf = (user, onlineIds) =>
-  user.profile?.bubble || (!onlineIds.has(user.id) ? user.profile?.attendance?.label || null : null);
+/** Bubble yang tampil: bubble buatan sendiri, atau keterangan absensi (Cuti, Sudah pulang, Offline di kantor) saat tidak online. */
+export const bubbleOf = (user, onlineIds) => {
+  if (user.profile?.bubble) return user.profile.bubble;
+  if (!onlineIds.has(user.id)) {
+    if (user.profile?.attendance?.state === 'present') {
+      return 'Offline (Di kantor)';
+    }
+    return user.profile?.attendance?.label || null;
+  }
+  return null;
+};
 
 /** Karakter avatar (SVG 180x180) dari config {skin, hair, shirt, acc}. */
 export function Character({ config = {}, size = 180 }) {
@@ -67,6 +76,7 @@ function AvatarBase({ user, status = 'online', size = 44, ring = true, className
   // foto dari data karyawan HRD / akun HR One, dipakai kalau karyawan belum membuat avatar sendiri
   const fallbackPhoto = !photoFailed && p.avatar_mode !== 'character' && !(p.avatar_mode === 'photo' && p.avatar_url) ? user.photo_url : null;
   const border = ring ? Math.max(2, Math.round(size / 15)) : 0;
+  const isOfflineLike = status === 'offline' || status === 'hadir';
   const style = {
     width: size,
     height: size,
@@ -74,9 +84,12 @@ function AvatarBase({ user, status = 'online', size = 44, ring = true, className
     borderColor: STATUS[status]?.ring || STATUS.online.ring,
     background: colorFor(user.id),
     fontSize: Math.round(size * 0.3),
+    opacity: isOfflineLike ? 0.58 : 1,
+    filter: isOfflineLike ? 'grayscale(25%)' : 'none',
+    transition: 'opacity .2s ease, filter .2s ease',
   };
   return (
-    <span className={`vo-avatar ${className}`} style={style}>
+    <span className={`vo-avatar ${isOfflineLike ? 'is-offline-avatar' : ''} ${className}`} style={style}>
       {p.avatar_mode === 'photo' && p.avatar_url ? (
         <img src={p.avatar_url} alt="" />
       ) : p.avatar_mode === 'character' ? (

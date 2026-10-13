@@ -5,6 +5,7 @@ import NotebookLmIcon from '../../images/notebooklm.svg';
 import Icon from '@/Components/hr/Icon';
 import { initials } from '@/Components/hr/ui';
 import { cn } from '@/lib/utils';
+import Avatar from '@/VirtualOffice/Avatar';
 import { useVoUnread } from '@/VirtualOffice/notify';
 
 // Navbar HR One. Isi menu sama seperti sebelumnya (Dashboard, Profile, Billing, Settings untuk admin, Log out),
@@ -73,15 +74,47 @@ export default function Navbar({ user, onOpenSidebar }) {
                     <div ref={wrap} className="relative">
                         <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open}
                             className={cn('flex items-center gap-2.5 rounded-full border bg-white p-1 transition lg:pr-3', open ? 'border-[#C7D2FE] shadow-[0_0_0_4px_rgba(76,111,255,.12)]' : 'border-[#E7EAF3] hover:border-[#C7D2FE]')}>
-                            <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-[#5B7BFF] to-[#2F4BD8] text-[13px] font-extrabold text-white">{initials(user?.name)}</span>
-                            <span className="hidden text-left leading-tight lg:block"><b className="block text-[13.5px] text-[#27272E]">{user?.name}</b><small className="text-[11.5px] text-slate-500">{isAdmin ? 'Admin' : 'User'}</small></span>
+                            <div className="relative shrink-0">
+                                {user?.profile ? (
+                                    <Avatar user={user} status={user?.profile?.status || 'online'} size={36} ring={true} />
+                                ) : (
+                                    <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-[#5B7BFF] to-[#2F4BD8] text-[13px] font-extrabold text-white">{initials(user?.name)}</span>
+                                )}
+                                <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3" title="Status: Online">
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                    <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-emerald-500 shadow-sm" />
+                                </span>
+                            </div>
+                            <span className="hidden text-left leading-tight lg:block">
+                                <b className="block text-[13.5px] text-[#27272E]">{user?.name}</b>
+                                <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600">
+                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    Online
+                                </span>
+                            </span>
                             <Icon name="down" className={cn('hidden h-4 w-4 text-slate-500 transition-transform lg:block', open && 'rotate-180')} />
                         </button>
                         {open && (
                             <div role="menu" className="hx-pop absolute right-0 top-[calc(100%+10px)] z-[60] grid w-60 gap-px rounded-2xl border border-[#E7EAF3] bg-white p-1.5 shadow-[0_24px_48px_-18px_rgba(12,26,75,.4)]">
                                 <div className="mb-1 flex items-center gap-2.5 rounded-xl bg-gradient-to-br from-[#EEF2FF] to-white p-2.5">
-                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#5B7BFF] to-[#2F4BD8] text-[13px] font-extrabold text-white">{initials(user?.name)}</span>
-                                    <span className="min-w-0"><b className="block truncate text-sm text-[#27272E]">{user?.name}</b><small className="block truncate text-xs text-slate-500">{user?.email || user?.username}</small></span>
+                                    <div className="relative shrink-0">
+                                        {user?.profile ? (
+                                            <Avatar user={user} status={user?.profile?.status || 'online'} size={40} ring={true} />
+                                        ) : (
+                                            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#5B7BFF] to-[#2F4BD8] text-[13.5px] font-extrabold text-white">{initials(user?.name)}</span>
+                                        )}
+                                        <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                            <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-emerald-500 shadow-sm" />
+                                        </span>
+                                    </div>
+                                    <span className="min-w-0">
+                                        <b className="block truncate text-sm text-[#27272E]">{user?.name}</b>
+                                        <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span>Online · Virtual Office</span>
+                                        </span>
+                                    </span>
                                 </div>
                                 <Link href={route('dashboard')} className={item} role="menuitem"><Icon name="home" className="h-4 w-4 text-slate-400" />Dashboard</Link>
                                 <Link href={route('profile.edit')} className={item} role="menuitem"><Icon name="user" className="h-4 w-4 text-slate-400" />Profile</Link>

@@ -57,6 +57,7 @@ class UsersImport implements ToCollection, WithHeadingRow
                 'role_id' => $roleId,
                 'division_id' => $divisionId,
                 'is_active' => strtolower($data['status']) !== 'nonaktif',
+                'must_change_password' => true,
             ]);
 
             $this->successCount++;

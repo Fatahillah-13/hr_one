@@ -63,6 +63,25 @@ class AttendanceSync
         return ['checked' => count($rows), 'changed' => $changed, 'rows' => $rows];
     }
 
+    /** Reset kehadiran harian pada tengah malam (jam 00:00). */
+    public static function resetDaily(): int
+    {
+        $profiles = Profile::whereNotNull('attendance_state')->get();
+        $resetCount = 0;
+
+        foreach ($profiles as $profile) {
+            $profile->update([
+                'attendance_state' => null,
+                'attendance_label' => null,
+                'attendance_at' => null,
+            ]);
+            Realtime::send(new ProfileUpdated($profile->user_id, $profile->toPublic()));
+            $resetCount++;
+        }
+
+        return $resetCount;
+    }
+
     // ------------------------------------------------------------------ API JPayroll
 
     /** @return array<int, array{state:string, label:?string, scans:int}> */
@@ -76,7 +95,7 @@ class AttendanceSync
         $userCol = config('virtual-office.employee.user_column', 'username');
         $userByKey = $users->mapWithKeys(fn ($u) => [trim((string) $u->{$userCol}) => $u->id])->filter()->all();
 
-        $request = Http::timeout($api['timeout'] ?? 10)->acceptJson()->withHeaders($api['headers'] ?? []);
+        $request = Http::timeout($api['timeout'] ?? 25)->acceptJson()->withHeaders($api['headers'] ?? []);
         if (! empty($api['token'])) {
             $request = $request->withToken($api['token']);
         }

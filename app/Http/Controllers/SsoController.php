@@ -31,7 +31,14 @@ class SsoController extends Controller
 
             $user->recordAppOpened($app);
 
-            return redirect()->away($app->app_link);
+            $target = $app->app_link;
+            if (! str_starts_with($target, '/') && ! preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//', $target)) {
+                if (preg_match('/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(:\d+)?/i', $target)) {
+                    $target = 'http://'.$target;
+                }
+            }
+
+            return redirect()->away($target);
         }
 
         try {

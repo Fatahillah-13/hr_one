@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\JPayrollAttendanceController;
 use App\Http\Controllers\SsoController;
 use Illuminate\Support\Facades\Route;
 
@@ -8,3 +9,8 @@ use Illuminate\Support\Facades\Route;
 Route::post('/sso/exchange', [SsoController::class, 'exchange'])
     ->middleware('throttle:30,1')
     ->name('api.sso.exchange');
+
+// REST API adapter untuk membaca absensi JPayroll
+Route::get('/jpayroll/attendance', [JPayrollAttendanceController::class, 'index'])
+    ->name('api.jpayroll.attendance');
+

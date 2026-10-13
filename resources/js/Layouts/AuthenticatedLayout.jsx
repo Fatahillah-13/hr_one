@@ -4,7 +4,7 @@ import Sidebar from '@/Components/Sidebar';
 import Navbar from '@/Components/Navbar';
 import VoNotifier from '@/VirtualOffice/VoNotifier';
 
-export default function AuthenticatedLayout({ children }) {
+export default function AuthenticatedLayout({ children, hideFooter = false }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { props } = usePage();
     const user = props?.auth?.user;
@@ -28,7 +28,9 @@ export default function AuthenticatedLayout({ children }) {
             <main className="min-w-0 flex-1">{children}</main>
             {/* Virtual Office: popup + suara pesan chat di semua halaman */}
             <VoNotifier />
-            <footer className="px-4 py-5 text-center text-xs text-slate-400">HR One System · PT. Hwaseung Indonesia · HRIS V.2.0</footer>
+            {!hideFooter && (
+                <footer className="px-4 py-5 text-center text-xs text-slate-400">HR One System · PT. Hwaseung Indonesia · HRIS V.2.0</footer>
+            )}
         </div>
     );
 }

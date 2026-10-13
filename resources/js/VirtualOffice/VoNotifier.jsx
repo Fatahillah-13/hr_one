@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { BASE } from './api';
 import { addUnread, desktopNotify, playPing } from './notify';
+import { ensureGlobalOfficeChannel } from './useRealtime';
 import '../../css/vo-notifier.css';
 
 const initialsOf = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase() || '?';
@@ -33,6 +34,18 @@ export default function VoNotifier() {
   };
 
   useEffect(() => () => Object.values(timers.current).forEach(clearTimeout), []);
+
+  // Bergabung ke presence channel vo.office sekundari setelah VoNotifier aktif.
+  // Inilah yang membuat user terlihat online di seluruh HR One, bukan hanya di halaman Virtual Office.
+  useEffect(() => {
+    if (!enabled || !user) return undefined;
+    if (!window.Echo) {
+      console.warn('[Virtual Office] window.Echo belum ada. Jalankan `php artisan install:broadcasting`.');
+      return undefined;
+    }
+    ensureGlobalOfficeChannel(user.id);
+    return undefined;
+  }, [enabled, user]);
 
   useEffect(() => {
     const Echo = window.Echo;

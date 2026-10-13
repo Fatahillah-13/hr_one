@@ -12,6 +12,7 @@ class App extends Model
         'description',
         'icon',
         'app_link',
+        'is_active',
         'sso_enabled',
         'sso_client_id',
         'sso_redirect_uri',

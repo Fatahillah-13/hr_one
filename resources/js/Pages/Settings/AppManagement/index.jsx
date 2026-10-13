@@ -12,6 +12,19 @@ export default function AppManagement({ apps = [] }) {
     const [editingApp, setEditingApp] = useState(null)
     const [deleting, setDeleting] = useState(null)
     const [busy, setBusy] = useState(false)
+    const [togglingId, setTogglingId] = useState(null)
+
+    const handleToggleActive = (app) => {
+        setTogglingId(app.id)
+        router.patch(
+            route('settings.apps.toggle-active', app.id),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setTogglingId(null),
+            }
+        )
+    }
 
     const handleDelete = () => {
         setBusy(true)
@@ -27,7 +40,7 @@ export default function AppManagement({ apps = [] }) {
             <div className="overflow-x-auto border-t border-[#E7EAF3]">
                 <table className="w-full text-left text-[13.5px]">
                     <thead><tr className="bg-[#FAFBFE] text-[11px] font-extrabold uppercase tracking-[.08em] text-slate-500">
-                        <th className="px-5 py-3">Name</th><th className="px-4 py-3">Division</th><th className="px-4 py-3">URL</th><th className="px-4 py-3">SSO</th><th className="px-5 py-3 text-right">Actions</th>
+                        <th className="px-5 py-3">Name</th><th className="px-4 py-3">Division</th><th className="px-4 py-3">URL</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">SSO</th><th className="px-5 py-3 text-right">Actions</th>
                     </tr></thead>
                     <tbody>
                         {apps.map((app, i) => (
@@ -35,16 +48,36 @@ export default function AppManagement({ apps = [] }) {
                                 <td className="px-5 py-3"><span className="flex items-center gap-3"><AppTile app={app} size="sm" /><span><b className="block font-bold text-[#27272E]">{app.name}</b><small className="font-mono text-[11.5px] text-slate-500">{app.slug}</small></span></span></td>
                                 <td className="px-4 py-3"><span className="flex flex-wrap gap-1.5">{(app.divisions || []).map((d) => <Badge key={d.id}>{d.name}</Badge>)}{!app.divisions?.length && <span className="text-slate-400">-</span>}</span></td>
                                 <td className="max-w-[260px] truncate px-4 py-3 font-mono text-[12.5px] text-[#425466]" title={app.app_link}>{app.app_link}</td>
+                                <td className="px-4 py-3">
+                                    <button
+                                        type="button"
+                                        disabled={togglingId === app.id}
+                                        onClick={() => handleToggleActive(app)}
+                                        title={app.is_active ? 'Klik untuk Disable (Nonaktifkan)' : 'Klik untuk Enable (Aktifkan)'}
+                                        className="inline-flex items-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
+                                    >
+                                        {app.is_active ? (
+                                            <Pill tone="green" dot>Enabled</Pill>
+                                        ) : (
+                                            <Pill tone="rose" dot>Disabled</Pill>
+                                        )}
+                                    </button>
+                                </td>
                                 <td className="px-4 py-3">{app.sso_enabled ? (<div><Pill tone="green" dot>Enabled</Pill><div className="mt-1 font-mono text-[11px] text-slate-500">{app.sso_client_id}</div></div>) : <Pill tone="gray">Disabled</Pill>}</td>
                                 <td className="px-5 py-3 text-right"><div className="flex justify-end">
                                     <RowMenu label={`Menu ${app.name}`} items={[
+                                        {
+                                            label: app.is_active ? 'Disable App' : 'Enable App',
+                                            icon: app.is_active ? 'eyeOff' : 'eye',
+                                            onClick: () => handleToggleActive(app),
+                                        },
                                         { label: 'Edit', icon: 'edit', onClick: () => { setEditingApp(app); setEditOpen(true) } }, '-',
                                         { label: 'Delete', icon: 'trash', danger: true, onClick: () => setDeleting(app) },
                                     ]} />
                                 </div></td>
                             </tr>
                         ))}
-                        {apps.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-500">Belum ada aplikasi.</td></tr>}
+                        {apps.length === 0 && <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-500">Belum ada aplikasi.</td></tr>}
                     </tbody>
                 </table>
             </div>

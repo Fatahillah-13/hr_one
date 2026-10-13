@@ -18,6 +18,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Keep route names as users.* to avoid breaking existing frontend calls.
     Route::resource('settings/users', UserManagementController::class)->names('users');
+    Route::patch('settings/apps/{app}/toggle-active', [AppManagementController::class, 'toggleActive'])->name('settings.apps.toggle-active');
     Route::resource('settings/apps', AppManagementController::class)->names('settings.apps');
     Route::post('settings/divisions/reorder', [DivisionManagementController::class, 'reorder'])->name('settings.divisions.reorder');
     Route::resource('settings/divisions', DivisionManagementController::class)->only(['store', 'update', 'destroy'])->names('settings.divisions');
