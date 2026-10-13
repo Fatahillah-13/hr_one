@@ -10,7 +10,11 @@ Route::post('/sso/exchange', [SsoController::class, 'exchange'])
     ->middleware('throttle:30,1')
     ->name('api.sso.exchange');
 
-// REST API adapter untuk membaca absensi JPayroll
-Route::get('/jpayroll/attendance', [JPayrollAttendanceController::class, 'index'])
-    ->name('api.jpayroll.attendance');
+
+Route::middleware('auth')->group(function () {
+    // REST API adapter untuk membaca absensi JPayroll
+    Route::get('/jpayroll/attendance', [JPayrollAttendanceController::class, 'index'])
+        ->middleware('throttle:30,1')
+        ->name('api.jpayroll.attendance');
+});
 
