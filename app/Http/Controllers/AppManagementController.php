@@ -78,12 +78,13 @@ class AppManagementController extends Controller
                 'min:12',
                 'max:255',
             ],
+            'app_link' => 'nullable|url|max:255',
             'division_ids' => 'nullable|array',
             'division_ids.*' => 'exists:divisions,id',
         ]);
 
         $appAttributes = collect($validated)
-            ->except(['division_ids', 'sso_client_secret'])
+            ->except(['division_ids'])
             ->toArray();
 
         $appAttributes['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : true;
@@ -170,12 +171,13 @@ class AppManagementController extends Controller
                 'min:12',
                 'max:255',
             ],
+            'app_link' => 'nullable|url|max:255',
             'division_ids' => 'nullable|array',
             'division_ids.*' => 'exists:divisions,id',
         ]);
 
         $appAttributes = collect($validated)
-            ->except(['division_ids', 'sso_client_secret'])
+            ->except(['division_ids'])
             ->toArray();
 
         if ($request->has('is_active')) {

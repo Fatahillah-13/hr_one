@@ -18,17 +18,16 @@ class DashboardController extends Controller
             ->with('divisions:id,name,slug,sort_order')
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'description', 'icon', 'app_link', 'sso_enabled'])
+            ->get(['id', 'name', 'slug', 'description', 'icon', 'app_link'])
             ->map(fn ($app) => [
                 'id' => $app->id,
                 'name' => $app->name,
                 'slug' => $app->slug,
                 'description' => $app->description,
                 'icon' => $app->icon,
-                'sso_enabled' => $app->sso_enabled,
                 // Modul internal HR One (app_link diawali "/") dibuka di tab yang sama,
                 // aplikasi lain di tab baru.
-                'launch_url' => route('sso.launch', $app->slug, absolute: ! $app->isInternalModule()),
+                'launch_url' => route('dashboard', $app->slug, absolute: ! $app->isInternalModule()),
                 'is_internal' => $app->isInternalModule(),
                 'divisions' => $app->divisions->map->only(['id', 'name', 'slug', 'sort_order'])->values(),
             ]);

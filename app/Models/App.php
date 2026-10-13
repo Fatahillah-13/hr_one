@@ -26,7 +26,6 @@ class App extends Model
     protected function casts(): array
     {
         return [
-            'sso_enabled' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -40,10 +39,5 @@ class App extends Model
     public function divisions()
     {
         return $this->belongsToMany(Division::class)->withTimestamps();
-    }
-
-    public function ssoLoginHandoffs()
-    {
-        return $this->hasMany(SsoLoginHandoff::class);
     }
 }

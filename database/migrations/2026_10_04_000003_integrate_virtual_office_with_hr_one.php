@@ -33,7 +33,6 @@ return new class extends Migration
             'icon' => 'chat',
             'app_link' => '/virtual-office',
             'is_active' => true,
-            'sso_enabled' => false,
             'created_at' => now(),
             'updated_at' => now(),
         ];

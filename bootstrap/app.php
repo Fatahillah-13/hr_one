@@ -25,6 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'app.access' => \App\Http\Middleware\EnsureAppAccess::class,
         ]);
+
+        $middleware->appendToGroup('web', \App\Http\Middleware\CheckSsoSession::class);
+        $middleware->validateCsrfTokens(except: ['auth/backchannel-logout']);
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->respond(function (Response $response) {
