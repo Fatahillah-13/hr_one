@@ -33,6 +33,8 @@ class SsoController extends Controller
         // 2. Cari user di tabel aplikasi ini
         $user = User::where(config('sso.column'), $value)->where('is_active', true)->first();
 
+        // 3. Jika user punya aplikasi tujuan, arahkan ke sana
+        if ($app = $user->app ?? null) {
             $target = $app->app_link;
             if (! str_starts_with($target, '/') && ! preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//', $target)) {
                 if (preg_match('/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(:\d+)?/i', $target)) {
