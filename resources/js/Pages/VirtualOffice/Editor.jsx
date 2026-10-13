@@ -53,6 +53,37 @@ export default function VirtualOfficeEditor({ seats, objects, users, draft, vers
 
   const usersById = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u])), [users]);
   const zones = useMemo(() => [...new Set(layout.seats.map((s) => s.zone))].sort(), [layout.seats]);
+  const zoneNames = useMemo(() => {
+    const map = {};
+    const labels = layout.objects.filter((o) => o.type === 'zone_label' && o.label);
+    zones.forEach((z) => {
+      const direct = labels.find((l) => new RegExp(`(^|\\b)ZONA\\s+${z}(\\b|$)`, 'i').test(l.label));
+      if (direct) {
+        map[z] = direct.label.replace(new RegExp(`(^|\\b)ZONA\\s+${z}\\s*[:-]?\\s*`, 'i'), '').trim() || direct.label;
+        return;
+      }
+      const zoneSeats = layout.seats.filter((s) => s.zone === z);
+      if (zoneSeats.length && labels.length) {
+        const avgX = zoneSeats.reduce((acc, s) => acc + s.x + s.w / 2, 0) / zoneSeats.length;
+        const avgY = zoneSeats.reduce((acc, s) => acc + s.y + s.d / 2, 0) / zoneSeats.length;
+        let closest = null;
+        let minDist = Infinity;
+        labels.forEach((l) => {
+          const lx = l.x + l.w / 2;
+          const ly = l.y + l.d / 2;
+          const dist = Math.hypot(lx - avgX, ly - avgY);
+          if (dist < minDist) {
+            minDist = dist;
+            closest = l;
+          }
+        });
+        if (closest && minDist < 280) {
+          map[z] = closest.label;
+        }
+      }
+    });
+    return map;
+  }, [zones, layout.seats, layout.objects]);
   const overlaps = useMemo(() => overlappingSeatKeys(layout.seats), [layout.seats]);
   const dirty = !sameLayout(layout, published);
   const seated = new Set(layout.seats.map((s) => s.user_id).filter(Boolean));
@@ -369,7 +400,11 @@ export default function VirtualOfficeEditor({ seats, objects, users, draft, vers
               Zona untuk meja baru
               <span className="vo-row">
                 <select value={zone} onChange={(e) => setZone(e.target.value)} aria-label="Zona">
-                  {(zones.length ? zones : ['A']).map((z) => <option key={z} value={z}>Zona {z}</option>)}
+                  {(zones.length ? zones : ['A']).map((z) => (
+                    <option key={z} value={z}>
+                      {zoneNames[z] ? `${z} - ${zoneNames[z]}` : `Zona ${z}`}
+                    </option>
+                  ))}
                 </select>
                 <input value={newZone} maxLength={10} onChange={(e) => setNewZone(e.target.value.toUpperCase())} placeholder="Zona baru" aria-label="Zona baru" />
               </span>
@@ -476,7 +511,7 @@ export default function VirtualOfficeEditor({ seats, objects, users, draft, vers
               <div className="vo-chips">
                 {zones.map((z) => (
                   <button key={z} type="button" onClick={() => setSelection(layout.seats.filter((s) => s.zone === z).map((s) => ({ kind: 'seat', key: s.key })))}>
-                    Zona {z}
+                    {zoneNames[z] ? `${z} - ${zoneNames[z]}` : `Zona ${z}`}
                   </button>
                 ))}
               </div>

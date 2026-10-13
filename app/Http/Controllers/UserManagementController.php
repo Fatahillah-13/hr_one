@@ -54,6 +54,7 @@ class UserManagementController extends Controller
             'role_id' => $validated['role_id'] ?? null,
             'division_id' => $validated['division_id'] ?? null,
             'is_active' => $validated['is_active'],
+            'must_change_password' => true,
         ]);
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
@@ -106,6 +107,7 @@ class UserManagementController extends Controller
 
         if (! empty($validated['password'])) {
             $payload['password'] = Hash::make($validated['password']);
+            $payload['must_change_password'] = true;
         }
 
         $user->update($payload);

@@ -26,7 +26,12 @@ export default function AppFormFields({ data, setData, errors, isEdit, slugTouch
                     <input id="app-icon" className={inputCls} value={data.icon} onChange={(e) => setData('icon', e.target.value)} placeholder="Icon name or URL" list="hx-icon-names" />
                     <datalist id="hx-icon-names">{ICONS.map((n) => <option key={n} value={n} />)}</datalist>
                 </Field>
-                <Field label="App Link" htmlFor="app-link" error={errors.app_link}><input id="app-link" type="url" className={inputCls} value={data.app_link} onChange={(e) => setData('app_link', e.target.value)} placeholder="https://example.com" /></Field>
+                <Field label="App Link" htmlFor="app-link" error={errors.app_link}><input id="app-link" type="text" className={inputCls} value={data.app_link} onChange={(e) => setData('app_link', e.target.value)} placeholder="https://example.com, /internal-path, atau 10.10.100.193:8500" /></Field>
+            </div>
+            <div className={cn('grid gap-3 rounded-2xl border p-4 transition-colors', data.is_active ? 'border-emerald-200 bg-emerald-50/40' : 'border-rose-200 bg-rose-50/40')}>
+                <Switch id={isEdit ? 'edit-is-active' : 'create-is-active'} checked={Boolean(data.is_active)} onChange={(v) => setData('is_active', v)}
+                    label={data.is_active ? 'Status: Active (Enabled)' : 'Status: Inactive (Disabled)'}
+                    description="Jika dinonaktifkan, aplikasi tidak akan tampil di kartu Beranda HR One untuk semua user." />
             </div>
             <div className={cn('grid gap-3 rounded-2xl border p-4 transition-colors', data.sso_enabled ? 'border-emerald-200 bg-emerald-50/60' : 'border-[#E7EAF3] bg-[#FAFBFE]')}>
                 <Switch id={isEdit ? 'edit-sso-enabled' : 'create-sso-enabled'} checked={data.sso_enabled} onChange={(v) => setData('sso_enabled', v)}

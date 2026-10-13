@@ -310,6 +310,17 @@ const shade = (hex, f) => {
 };
 const tone = (hex) => [hex, shade(hex, 0.86), shade(hex, 0.74)];
 
+const ghostTone = (hex) => {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r0 = (n >> 16), g0 = ((n >> 8) & 255), b0 = (n & 255);
+  // blend dengan abu-abu netral (#94A3B8) untuk figur offline di kantor
+  const r = Math.round(r0 * 0.4 + 148 * 0.6);
+  const g = Math.round(g0 * 0.4 + 163 * 0.6);
+  const b = Math.round(b0 * 0.4 + 184 * 0.6);
+  const base = `rgb(${r},${g},${b})`;
+  return [base, `rgb(${Math.round(r * 0.86)},${Math.round(g * 0.86)},${Math.round(b * 0.86)})`, `rgb(${Math.round(r * 0.74)},${Math.round(g * 0.74)},${Math.round(b * 0.74)})`];
+};
+
 /**
  * Kursi + karyawan di setiap meja, digambar ulang per frame.
  * occupants: { [kodeMeja]: { look, status, phase } }. Meja tanpa occupant = kursi kosong.
@@ -323,7 +334,14 @@ export function buildPeople(scene, occupants, t = 0) {
     const box = makeBox(g.items);
     chairParts(box, sp.x, sp.y, sp.side);
     const occ = occupants[code];
-    if (occ) person(box, sp, occ, t);
+    if (occ) {
+      if (occ.status === 'hadir') {
+        // absen sudah masuk tapi belum login HR One: figur tetap tampil, tapi redup & grayscale
+        person(box, sp, { ...occ, dimmed: true }, t);
+      } else {
+        person(box, sp, occ, t);
+      }
+    }
   });
   return groups;
 }
@@ -341,21 +359,23 @@ function person(box, sp, occ, t) {
     const b = sp.y + dy * f1;
     return [sp.x + s0, Math.min(a, b), s1 - s0, Math.abs(b - a)];
   };
-  const B = (r, h, z, col) => box(r[0], r[1], r[2], r[3], h, z, col[0], col[1], col[2], { layer: 3 });
-
   const { look, status, phase } = occ;
-  const skin = tone(look.skin);
-  const shirt = tone(look.shirt);
-  const pants = tone('#3A4650');
-  const hair = tone('#2C2420');
-  const eye = tone('#1E1A18');
+  const isDimmed = occ.dimmed || occ.status === 'hadir';
+  const getTone = isDimmed ? ghostTone : tone;
+  const skin = getTone(look.skin);
+  const shirt = getTone(look.shirt);
+  const pants = getTone('#3A4650');
+  const hair = getTone('#2C2420');
+  const eye = getTone('#1E1A18');
+
+  const B = (r, h, z, col) => box(r[0], r[1], r[2], r[3], h, z, col[0], col[1], col[2], { layer: 3 });
 
   const breath = 0.35 * Math.sin(t * 2.1 + phase);
   const typing = occ.chatting || status === 'online' || status === 'sibuk';
   const speed = occ.chatting ? 26 : status === 'sibuk' ? 22 : 13;
   const tapL = typing ? Math.max(0, Math.sin(t * speed + phase)) * 0.9 : 0;
   const tapR = typing ? Math.max(0, Math.sin(t * speed + phase + Math.PI)) * 0.9 : 0;
-  const nod = status === 'rapat' ? 0.7 * Math.sin(t * 3 + phase) : 0.25 * Math.sin(t * 1.3 + phase * 2);
+  const nod = occ.dimmed ? 0 : status === 'rapat' ? 0.7 * Math.sin(t * 3 + phase) : 0.25 * Math.sin(t * 1.3 + phase * 2);
   const lean = typing ? 0.6 + 0.3 * Math.sin(t * 0.7 + phase) : 0; // condong ke layar
 
   // kaki
@@ -382,7 +402,7 @@ function person(box, sp, occ, t) {
   // kepala
   const hz = 28 + breath + nod;
   const hf = lean + (status === 'rapat' ? 0.4 * Math.sin(t * 3 + phase) : 0);
-  if (look.hair === 'hijab') B(R(-6.8 + hf, 1.6 + hf, -5, 5), 12.5, hz - 1.5, tone('#5E4E86'));
+  if (look.hair === 'hijab') B(R(-6.8 + hf, 1.6 + hf, -5, 5), 12.5, hz - 1.5, getTone('#5E4E86'));
   B(R(-5.5 + hf, 2.5 + hf, -4, 4), 9, hz, skin);
   B(R(2.5 + hf, 2.9 + hf, -2.6, -1.2), 1.4, hz + 4.5, eye);
   B(R(2.5 + hf, 2.9 + hf, 1.2, 2.6), 1.4, hz + 4.5, eye);

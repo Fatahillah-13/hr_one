@@ -29,6 +29,7 @@ class User extends Authenticatable
         'last_login_at',
         'password',
         'is_active',
+        'must_change_password',
     ];
 
     /**
@@ -53,6 +54,7 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
     }
 

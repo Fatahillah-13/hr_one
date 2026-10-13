@@ -21,6 +21,7 @@ class Profile extends Model
 
     protected $casts = [
         'bubble_expires_at' => 'datetime',
+        'attendance_at' => 'datetime',
         'avatar_config' => 'array',
     ];
 
@@ -47,6 +48,10 @@ class Profile extends Model
     /** Data yang dikirim ke frontend. */
     public function toPublic(): array
     {
+        // Reset status kehadiran otomatis jika data sudah lewat hari (jam 00:00)
+        $attAt = $this->attendance_at ? \Illuminate\Support\Carbon::parse($this->attendance_at) : null;
+        $isToday = $attAt && $attAt->isToday();
+
         return [
             'status' => $this->status,
             'bubble' => $this->activeBubble(),
@@ -54,7 +59,7 @@ class Profile extends Model
             'avatar_mode' => $this->avatar_mode,
             'avatar_url' => $this->avatar_path ? Storage::disk('public')->url($this->avatar_path) : null,
             'avatar_config' => $this->avatar_config,
-            'attendance' => $this->attendance_state ? [
+            'attendance' => ($this->attendance_state && $isToday) ? [
                 'state' => $this->attendance_state,
                 'label' => $this->attendance_label,
             ] : null,

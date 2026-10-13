@@ -40,6 +40,44 @@ class AppManagementController extends Controller
             'slug' => 'required|string|max:255|unique:apps,slug',
             'description' => 'nullable|string|max:500',
             'icon' => 'nullable|string|max:255',
+            'app_link' => [
+                'nullable',
+                'string',
+                'max:1000',
+                function ($attribute, $value, $fail) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    if (preg_match('/^\s*(javascript|data|vbscript):/i', (string) $value)) {
+                        $fail('Format link aplikasi tidak valid.');
+                    }
+                    if (!filter_var($value, FILTER_VALIDATE_URL)) {
+                        $fail('Format link aplikasi tidak valid.');
+                    }
+                },
+            ],
+            'is_active' => 'nullable|boolean',
+            'sso_enabled' => 'nullable|boolean',
+            'sso_client_id' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'string',
+                'max:255',
+                'unique:apps,sso_client_id',
+            ],
+            'sso_redirect_uri' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'url',
+                'max:255',
+            ],
+            'sso_client_secret' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'string',
+                'min:12',
+                'max:255',
+            ],
             'app_link' => 'nullable|url|max:255',
             'division_ids' => 'nullable|array',
             'division_ids.*' => 'exists:divisions,id',
@@ -49,10 +87,20 @@ class AppManagementController extends Controller
             ->except(['division_ids'])
             ->toArray();
 
+        $appAttributes['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : true;
+
+        if ($validated['sso_enabled'] ?? false) {
+            $appAttributes['sso_client_secret_hash'] = Hash::make($validated['sso_client_secret']);
+        } else {
+            $appAttributes['sso_client_id'] = null;
+            $appAttributes['sso_redirect_uri'] = null;
+            $appAttributes['sso_client_secret_hash'] = null;
+        }
+
         $app = App::create($appAttributes);
         $app->divisions()->sync($validated['division_ids'] ?? []);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', "Aplikasi {$app->name} berhasil ditambahkan.");
     }
 
     /**
@@ -89,6 +137,40 @@ class AppManagementController extends Controller
             'slug' => 'required|string|max:255|unique:apps,slug,'.$app->id,
             'description' => 'nullable|string|max:500',
             'icon' => 'nullable|string|max:255',
+            'app_link' => [
+                'nullable',
+                'string',
+                'max:1000',
+                function ($attribute, $value, $fail) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    if (preg_match('/^\s*(javascript|data|vbscript):/i', (string) $value)) {
+                        $fail('Format link aplikasi tidak valid.');
+                    }
+                },
+            ],
+            'is_active' => 'nullable|boolean',
+            'sso_enabled' => 'nullable|boolean',
+            'sso_client_id' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('apps', 'sso_client_id')->ignore($app->id),
+            ],
+            'sso_redirect_uri' => [
+                Rule::requiredIf($request->boolean('sso_enabled')),
+                'nullable',
+                'url',
+                'max:255',
+            ],
+            'sso_client_secret' => [
+                'nullable',
+                'string',
+                'min:12',
+                'max:255',
+            ],
             'app_link' => 'nullable|url|max:255',
             'division_ids' => 'nullable|array',
             'division_ids.*' => 'exists:divisions,id',
@@ -98,10 +180,38 @@ class AppManagementController extends Controller
             ->except(['division_ids'])
             ->toArray();
 
+        if ($request->has('is_active')) {
+            $appAttributes['is_active'] = $request->boolean('is_active');
+        }
+
+        if ($validated['sso_enabled'] ?? false) {
+            if (! empty($validated['sso_client_secret'])) {
+                $appAttributes['sso_client_secret_hash'] = Hash::make($validated['sso_client_secret']);
+            }
+        } else {
+            $appAttributes['sso_client_id'] = null;
+            $appAttributes['sso_redirect_uri'] = null;
+            $appAttributes['sso_client_secret_hash'] = null;
+        }
+
         $app->update($appAttributes);
         $app->divisions()->sync($validated['division_ids'] ?? []);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', "Aplikasi {$app->name} berhasil diperbarui.");
+    }
+
+    /**
+     * Toggle active/inactive status of the specified app.
+     */
+    public function toggleActive(string $id)
+    {
+        $app = App::findOrFail($id);
+        $app->update([
+            'is_active' => ! $app->is_active,
+        ]);
+
+        $status = $app->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()->back()->with('success', "Aplikasi {$app->name} berhasil {$status}.");
     }
 
     /**

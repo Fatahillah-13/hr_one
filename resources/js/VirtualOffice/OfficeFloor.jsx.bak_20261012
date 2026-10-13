@@ -1,0 +1,457 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Avatar, { STATUS, bubbleOf, effectiveStatus } from './Avatar';
+import { DEFAULT_VIEW, SEAT_Z, createRenderer, lookFor, makeProjector } from './scene';
+
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+// ---- tata letak bubble status: hindari tumpukan ----
+const BUBBLE_H = 24;
+const TYPING_LABEL = { personal: 'Chat pribadi', group: 'Chat grup' };
+
+// Bubble status tampil bergiliran supaya lantai tidak ramai:
+// tiap bubble muncul BUBBLE_SHOW_MS, lalu sembunyi, dan muncul lagi setiap BUBBLE_CYCLE_MS.
+// Waktu muncul tiap orang digeser (tidak serempak). Bubble yang baru diubah langsung tampil.
+// Saat hover / dipilih, bubble selalu terlihat.
+export const BUBBLE_CYCLE_MS = 60000;
+export const BUBBLE_SHOW_MS = 15000;
+const cycleOffset = (id) => ((Number(id) || 0) * 7919) % BUBBLE_CYCLE_MS;
+const BUBBLE_MAX_W = 150;
+let measureCtx = null;
+function textWidth(text) {
+  if (!measureCtx) {
+    measureCtx = document.createElement('canvas').getContext('2d');
+    measureCtx.font = '600 11px "Plus Jakarta Sans", system-ui, sans-serif';
+  }
+  return measureCtx.measureText(text).width;
+}
+const overlaps = (a, b) => a.x < b.x + b.w + 4 && b.x < a.x + a.w + 4 && a.y < b.y + b.h + 3 && b.y < a.y + a.h + 3;
+
+/**
+ * Cari posisi bubble yang tidak saling menutupi. Bubble yang paling dekat ke kamera dapat tempat dulu.
+ * Kandidat: tepat di atas kepala, geser kiri/kanan, lalu naik satu-dua tingkat (pakai garis penunjuk).
+ * Kalau tidak ada tempat, bubble diringkas menjadi titik "…" (teks lengkap muncul saat hover).
+ */
+function layoutBubbles(items, figH, W, H, priorityId) {
+  const placedBoxes = [];
+  const out = {};
+  const ordered = [...items].sort((a, b) => (a.id === priorityId ? -1 : b.id === priorityId ? 1 : b.sy - a.sy));
+  ordered.forEach((it) => {
+    const w = Math.min(BUBBLE_MAX_W, Math.ceil(textWidth(it.text)) + 20 + (it.extra || 0));
+    const baseY = it.sy - figH - 2 - BUBBLE_H;
+    const side = w / 2 + 8;
+    const cands = [[0, 0], [-side, 0], [side, 0], [0, -30], [-side, -30], [side, -30], [0, -60], [-side, -60], [side, -60]];
+    let found = null;
+    for (const [dx, dy] of cands) {
+      const box = { x: it.sx + dx - w / 2, y: baseY + dy, w, h: BUBBLE_H };
+      if (box.x < 4 || box.x + w > W - 4 || box.y < 4 || box.y + BUBBLE_H > H - 4) continue;
+      if (placedBoxes.some((b) => overlaps(b, box))) continue;
+      found = { dx, dy, box };
+      break;
+    }
+    if (found) {
+      placedBoxes.push(found.box);
+      out[it.id] = { mode: 'full', dx: found.dx, dy: found.dy, w };
+    } else {
+      const dot = { x: it.sx - 13, y: baseY + BUBBLE_H - 18, w: 26, h: 18 };
+      placedBoxes.push(dot);
+      out[it.id] = { mode: 'dot', dx: 0, dy: 0, w };
+    }
+  });
+  return out;
+}
+
+const VIEW_PRESETS = [
+  { label: 'Isometrik', hint: 'default', apply: (v) => ({ ...v, rz: DEFAULT_VIEW.rz, tilt: DEFAULT_VIEW.tilt }) },
+  { label: 'Tampak atas', hint: '2D', apply: (v) => ({ ...v, rz: 0, tilt: 0 }) },
+  { label: 'Putar 90° ke kiri', hint: '', apply: (v) => ({ ...v, rz: v.rz - 90 }) },
+  { label: 'Putar 90° ke kanan', hint: '', apply: (v) => ({ ...v, rz: v.rz + 90 }) },
+  { label: 'Perbesar', hint: 'scroll ↑', apply: (v) => ({ ...v, zoom: clamp(v.zoom * 1.2, 0.5, 2.5) }) },
+  { label: 'Perkecil', hint: 'scroll ↓', apply: (v) => ({ ...v, zoom: clamp(v.zoom / 1.2, 0.5, 2.5) }) },
+  { label: 'Reset tampilan', hint: '', apply: () => ({ ...DEFAULT_VIEW }) },
+];
+
+export default function OfficeFloor({ scene, people, onlineIds, zone, selectedId, onSelect, onChat, meId, activity = {} }) {
+  const wrapRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [size, setSize] = useState({ w: 900, h: 600 });
+  const [view, setViewNow] = useState(DEFAULT_VIEW);
+  // Perubahan tampilan dari mouse/touch digabung maksimal 1x per frame layar
+  // (mouse gaming bisa mengirim 500–1000 event per detik).
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const pendingView = useRef(null);
+  const viewRaf = useRef(0);
+  const setView = (next) => {
+    const baseV = pendingView.current || viewRef.current;
+    pendingView.current = typeof next === 'function' ? next(baseV) : next;
+    if (viewRaf.current) return;
+    viewRaf.current = requestAnimationFrame(() => {
+      viewRaf.current = 0;
+      const v = pendingView.current;
+      pendingView.current = null;
+      if (v) setViewNow(v);
+    });
+  };
+  useEffect(() => () => cancelAnimationFrame(viewRaf.current), []);
+  const [menu, setMenu] = useState(null);
+  const pointers = useRef(new Map());
+  const gesture = useRef(null);
+
+  // ukuran stage mengikuti lebar kontainer
+  useEffect(() => {
+    const el = wrapRef.current;
+    const ro = new ResizeObserver(([e]) => {
+      const w = Math.round(e.contentRect.width);
+      setSize({ w, h: Math.round(clamp(w * 0.62, 380, 680)) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // siapa duduk di meja mana + statusnya (offline = kursi kosong)
+  const occupants = useMemo(() => {
+    const map = {};
+    people.forEach((u) => {
+      if (!u.seat_code || !scene.seatPoints[u.seat_code]) return;
+      const status = effectiveStatus(u, onlineIds);
+      if (status === 'offline') return;
+      map[u.seat_code] = { look: lookFor(u), status, phase: (Number(u.id) || 0) * 1.7, chatting: !!activity[u.id] };
+    });
+    return map;
+  }, [people, onlineIds, scene, activity]);
+
+  // gambar canvas.
+  // - tampilan / data berubah → gambar penuh di frame berikutnya (digabung, tidak dobel)
+  // - animasi ~30 fps → hanya area figur karyawan yang digambar ulang
+  // - berhenti beranimasi saat tab tidak terlihat atau pengguna memilih "kurangi gerak"
+  const live = useRef({});
+  const needFull = useRef(true);
+  const lastInteract = useRef(0);
+  const [animOn, setAnimOn] = useState(() => { try { return localStorage.getItem('vo-anim') !== 'off'; } catch { return true; } });
+  live.current = { scene, view, size, occupants, animOn };
+  const [lowRes, setLowRes] = useState(false); // diaktifkan otomatis kalau komputer lambat menggambar
+  const dprOf = () => Math.min(window.devicePixelRatio || 1, lowRes ? 1 : 2);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const dpr = dprOf();
+    canvas.width = Math.round(size.w * dpr);
+    canvas.height = Math.round(size.h * dpr);
+    needFull.current = true;
+  }, [size, lowRes]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { needFull.current = true; }, [scene, occupants, animOn]);
+  useEffect(() => { needFull.current = true; lastInteract.current = performance.now(); }, [view]);
+  useEffect(() => { try { localStorage.setItem('vo-anim', animOn ? 'on' : 'off'); } catch { /* abaikan */ } }, [animOn]);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const renderer = createRenderer();
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const start = performance.now();
+    let raf = 0;
+    let last = 0;
+    let inView = true;
+    let cost = 6; // rata-rata lama menggambar (ms)
+    let slowFull = 0;
+    const draw = (now) => {
+      raf = requestAnimationFrame(draw);
+      const L = live.current;
+      const animate = L.animOn && !reduce && inView && document.visibilityState === 'visible'
+        && now - lastInteract.current > 250; // saat diputar/zoom, tenaga dipakai untuk mengikuti mouse
+      const full = needFull.current;
+      // Gerakan figur sangat halus (≤1 piksel), jadi 15 fps sudah cukup hidup.
+      // Kalau komputer lambat menggambar, jeda diperpanjang otomatis (sampai ±8 fps).
+      const gap = Math.min(125, Math.max(66, cost * 6));
+      if (!full && (!animate || now - last < gap)) return;
+      last = now;
+      needFull.current = false;
+      const t0 = performance.now();
+      renderer.draw(ctx, {
+        scene: L.scene, view: L.view, width: L.size.w, height: L.size.h,
+        dpr: canvas.width / L.size.w, occupants: L.occupants,
+        t: L.animOn && !reduce ? (now - start) / 1000 : 0, full,
+      });
+      const dt = performance.now() - t0;
+      cost = cost * 0.85 + dt * 0.15;
+      if (full && dt > 28 && ++slowFull >= 4) setLowRes(true);
+    };
+    const onVis = () => { needFull.current = true; };
+    document.addEventListener('visibilitychange', onVis);
+    // berhenti beranimasi kalau lantai tidak terlihat (mis. di HP sedang menggulir ke chat)
+    const io = 'IntersectionObserver' in window ? new IntersectionObserver(([e]) => { inView = e.isIntersecting; }) : null;
+    io?.observe(canvas);
+    raf = requestAnimationFrame(draw);
+    return () => { cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', onVis); io?.disconnect(); };
+  }, []);
+
+  // zoom dengan scroll mouse (listener non-passive agar halaman tidak ikut scroll)
+  useEffect(() => {
+    const el = wrapRef.current;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const f = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      setView((v) => ({ ...v, zoom: clamp(v.zoom * f, 0.5, 2.5) }));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  const P = useMemo(() => makeProjector(view, size.w, size.h), [view, size]);
+
+  // posisi avatar di layar
+  const placed = useMemo(
+    () =>
+      people
+        .filter((u) => u.seat_code && scene.seatPoints[u.seat_code])
+        .map((u) => {
+          const s = scene.seatPoints[u.seat_code];
+          const [sx, sy] = P.project(s.x, s.y, SEAT_Z - 4);
+          return { u, sx, sy, zone: s.zone };
+        })
+        .sort((a, b) => a.sy - b.sy),
+    [people, scene, P],
+  );
+
+  // ukuran area figur karyawan di layar (dari dudukan kursi sampai atas kepala)
+  const figH = Math.max(20, 30 * P.sT * P.Z + 8);
+  const figW = Math.max(18, 18 * P.Z);
+
+  // jam internal untuk giliran bubble (diperbarui tiap detik)
+  // Hanya memicu render ulang kalau ada bubble yang perlu muncul/sembunyi (bukan tiap detik).
+  const [now, setNow] = useState(() => Date.now());
+  const keyFn = useRef(null);
+  useEffect(() => {
+    const t = setInterval(() => {
+      const f = keyFn.current;
+      if (f && f(Date.now()) !== f(null)) setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+  // catat kapan bubble tiap orang terakhir berubah → yang baru diubah langsung tampil
+  const changed = useRef({});
+  people.forEach((u) => {
+    const text = bubbleOf(u, onlineIds) || '';
+    const rec = changed.current[u.id];
+    if (!rec || rec.text !== text) changed.current[u.id] = { text, at: rec ? Date.now() : 0 };
+  });
+  const showingAt = (u, at) => {
+    if (u.id === selectedId) return true;
+    const rec = changed.current[u.id];
+    if (rec && rec.at && at - rec.at < BUBBLE_SHOW_MS) return true;
+    return (at + cycleOffset(u.id)) % BUBBLE_CYCLE_MS < BUBBLE_SHOW_MS;
+  };
+  const keyAt = (at) => placed.filter(({ u }) => bubbleOf(u, onlineIds) && showingAt(u, at)).map(({ u }) => u.id).join(',');
+  const visibleKey = keyAt(now);
+  keyFn.current = (at) => (at === null ? visibleKey : keyAt(at));
+
+  const bubbles = useMemo(() => {
+    // bubble "sedang mengetik" menggantikan bubble status selama karyawan mengetik chat
+    const items = placed
+      .filter(({ u, zone: z }) => (activity[u.id] || (bubbleOf(u, onlineIds) && visibleKey.split(',').includes(String(u.id)))) && (zone === 'all' || zone === z))
+      .map(({ u, sx, sy }) => {
+        const act = activity[u.id];
+        return act
+          ? { id: u.id, sx, sy, text: TYPING_LABEL[act.kind] || TYPING_LABEL.personal, extra: 34 }
+          : { id: u.id, sx, sy, text: bubbleOf(u, onlineIds) };
+      });
+    return layoutBubbles(items, figH, size.w, size.h, selectedId);
+  }, [placed, figH, size, zone, selectedId, activity, visibleKey, onlineIds]);
+
+  // ---------- interaksi: klik kanan putar, klik kiri geser, pinch/twist di layar sentuh ----------
+  const onPointerDown = (e) => {
+    if (e.target.closest('button, [role=menu], [role=dialog]')) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const base = { view: pendingView.current || viewRef.current, moved: false, x: e.clientX, y: e.clientY };
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      gesture.current = { ...base, mode: 'pinch', dist: Math.hypot(a.x - b.x, a.y - b.y), ang: Math.atan2(b.y - a.y, b.x - a.x) };
+    } else if (e.pointerType === 'mouse' && e.button === 2) {
+      gesture.current = { ...base, mode: 'rotate' };
+    } else {
+      gesture.current = { ...base, mode: 'pan' };
+      setMenu(null);
+    }
+  };
+
+  const onPointerMove = (e) => {
+    const g = gesture.current;
+    if (!g || !pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const dx = e.clientX - g.x;
+    const dy = e.clientY - g.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) g.moved = true;
+    if (!g.moved && g.mode !== 'pinch') return;
+
+    if (g.mode === 'rotate') {
+      setView({ ...g.view, rz: g.view.rz + dx * 0.4, tilt: clamp(g.view.tilt - dy * 0.3, 0, 75) });
+    } else if (g.mode === 'pan') {
+      setView({ ...g.view, panX: g.view.panX + dx, panY: g.view.panY + dy });
+    } else if (g.mode === 'pinch' && pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const ang = Math.atan2(b.y - a.y, b.x - a.x);
+      setView({
+        ...g.view,
+        zoom: clamp((g.view.zoom * dist) / g.dist, 0.5, 2.5),
+        rz: g.view.rz + ((ang - g.ang) * 180) / Math.PI,
+      });
+    }
+  };
+
+  const onPointerUp = (e) => {
+    const g = gesture.current;
+    pointers.current.delete(e.pointerId);
+    if (g && g.mode === 'rotate' && !g.moved) {
+      const r = wrapRef.current.getBoundingClientRect();
+      setMenu({ x: clamp(e.clientX - r.left, 8, size.w - 226), y: clamp(e.clientY - r.top, 8, size.h - 372) });
+    }
+    gesture.current = pointers.current.size ? { ...gesture.current, mode: 'pan', view: pendingView.current || viewRef.current, x: e.clientX, y: e.clientY } : null;
+  };
+
+  const selected = placed.find((p) => p.u.id === selectedId);
+  let card = null;
+  if (selected) {
+    const left = selected.sx + 34 + 250 > size.w ? selected.sx - 284 : selected.sx + 34;
+    card = { left: clamp(left, 8, size.w - 258), top: clamp(selected.sy - 170, 8, size.h - 260) };
+  }
+
+  return (
+    <div className="vo-floor">
+      <div
+        ref={wrapRef}
+        className="vo-stage"
+        style={{ height: size.h }}
+        onContextMenu={(e) => e.preventDefault()}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        <canvas ref={canvasRef} style={{ width: size.w, height: size.h }} aria-label="Denah lantai kantor" />
+
+        {placed.map(({ u, sx, sy, zone: z }) => {
+          const st = effectiveStatus(u, onlineIds);
+          const dim = zone !== 'all' && zone !== z;
+          const bubble = bubbleOf(u, onlineIds);
+          const act = activity[u.id];
+          const b = bubbles[u.id] || null;
+          const label = `${u.name}, ${STATUS[st].label}${bubble ? ', ' + bubble : ''}`;
+          const toggle = () => onSelect(selectedId === u.id ? null : u.id);
+          return (
+            <div
+              key={u.id}
+              className={`vo-person${dim ? ' is-dim' : ''}${st === 'offline' ? ' is-offline' : ''}${selectedId === u.id ? ' is-selected' : ''}`}
+              style={{ left: sx, top: sy, '--fig-h': `${figH}px` }}
+            >
+              <button type="button" className="vo-person-hit" style={{ width: figW, height: figH }} onClick={toggle} aria-label={label} />
+              <button type="button" className="vo-person-pop" onClick={toggle} tabIndex={-1} aria-hidden="true">
+                <Avatar user={u} status={st} size={40} />
+                <span className="vo-nametag">{u.id === meId ? `${u.name} (kamu)` : u.name}</span>
+              </button>
+              {b && (b.dx !== 0 || b.dy !== 0) && (
+                <svg className="vo-leader" width="1" height="1" aria-hidden="true">
+                  <line x1="0" y1={-figH + 4} x2={b.dx} y2={-figH - 2 + b.dy} />
+                </svg>
+              )}
+              {b && act && (
+                <div
+                  key={`typing-${act.kind}`}
+                  className={`vo-bubble vo-person-bubble is-typing is-${act.kind}${b.mode === 'dot' ? ' is-dot' : ''}`}
+                  style={{ '--bx': `${b.dx}px`, '--by': `${b.dy}px` }}
+                  role="status"
+                  aria-label={`${u.name} sedang mengetik ${act.kind === 'group' ? 'di grup' : 'pesan pribadi'}`}
+                >
+                  <i className="vo-dots" aria-hidden="true"><b /><b /><b /></i>
+                  <span>{TYPING_LABEL[act.kind] || TYPING_LABEL.personal}</span>
+                </div>
+              )}
+              {!act && bubble && (
+                <div
+                  className={`vo-bubble vo-person-bubble${!b ? ' is-resting' : b.mode === 'dot' ? ' is-dot' : ''}`}
+                  style={{ '--bx': `${b ? b.dx : 0}px`, '--by': `${b ? b.dy : 0}px` }}
+                  title={bubble}
+                >
+                  <span>{bubble}</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {selected && (
+          <div role="dialog" aria-label="Profil karyawan" className="vo-card" style={card}>
+            <div className="vo-card-head">
+              <Avatar user={selected.u} status={effectiveStatus(selected.u, onlineIds)} size={52} />
+              <div className="vo-card-title">
+                <strong>{selected.u.name}</strong>
+                <span>{[selected.u.employee?.job_level, selected.u.employee?.department || selected.u.division].filter(Boolean).join(' · ') || `Zona ${selected.zone}`}</span>
+                <span>Zona {selected.zone} · Meja {selected.u.seat_code}{selected.u.employee?.nik ? ` · NIK ${selected.u.employee.nik}` : ''}</span>
+              </div>
+              <button type="button" className="vo-icon-btn" aria-label="Tutup" onClick={() => onSelect(null)}>
+                ×
+              </button>
+            </div>
+            <div className="vo-card-status">
+              <span className="vo-dot" style={{ background: STATUS[effectiveStatus(selected.u, onlineIds)].ring }} />
+              {STATUS[effectiveStatus(selected.u, onlineIds)].label}
+            </div>
+            {bubbleOf(selected.u, onlineIds) && <div className="vo-card-bubble">“{bubbleOf(selected.u, onlineIds)}”</div>}
+            {selected.u.id !== meId && (
+              <button type="button" className="vo-btn vo-btn-primary" onClick={() => onChat(selected.u.id)}>
+                Chat
+              </button>
+            )}
+          </div>
+        )}
+
+        {menu && (
+          <div role="menu" aria-label="Menu tampilan" className="vo-menu" style={{ left: menu.x, top: menu.y }}>
+            <span className="vo-menu-title">TAMPILAN</span>
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              aria-checked={animOn}
+              onClick={() => { setAnimOn((v) => !v); setMenu(null); }}
+            >
+              <span>Animasi karyawan</span>
+              <small>{animOn ? 'aktif' : 'mati'}</small>
+            </button>
+            {VIEW_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setView((v) => p.apply(v));
+                  setMenu(null);
+                }}
+              >
+                <span>{p.label}</span>
+                <small>{p.hint}</small>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="vo-zoom">
+          <button type="button" aria-label="Perkecil" onClick={() => setView((v) => ({ ...v, zoom: clamp(v.zoom / 1.2, 0.5, 2.5) }))}>−</button>
+          <span>{Math.round(view.zoom * 100)}%</span>
+          <button type="button" aria-label="Perbesar" onClick={() => setView((v) => ({ ...v, zoom: clamp(v.zoom * 1.2, 0.5, 2.5) }))}>+</button>
+          <button type="button" onClick={() => setView({ ...DEFAULT_VIEW })}>Reset</button>
+        </div>
+      </div>
+
+      <div className="vo-legend">
+        {Object.entries(STATUS).map(([k, s]) => (
+          <span key={k}>
+            <i style={{ borderColor: s.ring }} />
+            {s.label}
+          </span>
+        ))}
+        <span className="vo-legend-hint">
+          Klik kanan + geser: putar · Klik kiri + geser: geser · Scroll: zoom · Klik kanan: menu tampilan
+        </span>
+      </div>
+    </div>
+  );
+}

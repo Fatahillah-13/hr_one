@@ -39,6 +39,41 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
   const meUser = usersById[me.id] || { ...me, profile: {} };
   const zones = useMemo(() => [...new Set(seats.map((s) => s.zone))].sort(), [seats]);
 
+  // Petakan kode zona (A, B, C...) ke nama label zona dari objek denah (zone_label)
+  const zoneNames = useMemo(() => {
+    const map = {};
+    const labels = objects.filter((o) => o.type === 'zone_label' && o.label);
+    zones.forEach((z) => {
+      // 1. Coba cari label yang secara eksplisit memuat kode zona (misal: "ZONA A - HI Team")
+      const direct = labels.find((l) => new RegExp(`(^|\\b)ZONA\\s+${z}(\\b|$)`, 'i').test(l.label));
+      if (direct) {
+        map[z] = direct.label.replace(new RegExp(`(^|\\b)ZONA\\s+${z}\\s*[:-]?\\s*`, 'i'), '').trim() || direct.label;
+        return;
+      }
+      // 2. Cari label terdekat berdasarkan posisi geometri meja zona tersebut
+      const zoneSeats = seats.filter((s) => s.zone === z);
+      if (zoneSeats.length && labels.length) {
+        const avgX = zoneSeats.reduce((acc, s) => acc + s.x + s.w / 2, 0) / zoneSeats.length;
+        const avgY = zoneSeats.reduce((acc, s) => acc + s.y + s.d / 2, 0) / zoneSeats.length;
+        let closest = null;
+        let minDist = Infinity;
+        labels.forEach((l) => {
+          const lx = l.x + l.w / 2;
+          const ly = l.y + l.d / 2;
+          const dist = Math.hypot(lx - avgX, ly - avgY);
+          if (dist < minDist) {
+            minDist = dist;
+            closest = l;
+          }
+        });
+        if (closest && minDist < 280) {
+          map[z] = closest.label;
+        }
+      }
+    });
+    return map;
+  }, [zones, seats, objects]);
+
   const flash = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3500);
@@ -250,7 +285,7 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
   const [desktopOn, setDesktopOn] = useState(prefs.desktop());
 
   return (
-    <AuthenticatedLayout>
+    <AuthenticatedLayout hideFooter={true}>
     <div className="vo-app">
       <Head title="Virtual Office" />
 
@@ -322,11 +357,14 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
           <div className="vo-floor-top">
             <h1>Lantai HRD</h1>
             <div className="vo-chips" role="group" aria-label="Filter zona">
-              {['all', ...zones].map((z) => (
-                <button key={z} type="button" className={zone === z ? 'is-on' : ''} onClick={() => setZone(z)}>
-                  {z === 'all' ? 'Semua' : `Zona ${z}`}
-                </button>
-              ))}
+              {['all', ...zones].map((z) => {
+                const label = z === 'all' ? 'Semua' : (zoneNames[z] ? `${z} - ${zoneNames[z]}` : `Zona ${z}`);
+                return (
+                  <button key={z} type="button" className={zone === z ? 'is-on' : ''} onClick={() => setZone(z)}>
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <OfficeFloor
@@ -334,6 +372,7 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
             people={visibleUsers}
             onlineIds={onlineIds}
             zone={zone}
+            zoneNames={zoneNames}
             selectedId={selectedId}
             onSelect={setSelectedId}
             onChat={chatWith}

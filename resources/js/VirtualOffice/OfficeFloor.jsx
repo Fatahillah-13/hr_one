@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Avatar, { STATUS, bubbleOf, effectiveStatus } from './Avatar';
-import { DEFAULT_VIEW, SEAT_Z, createRenderer, lookFor, makeProjector } from './scene';
+import { DEFAULT_VIEW, FLOOR_H, FLOOR_W, SEAT_Z, createRenderer, lookFor, makeProjector } from './scene';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
@@ -70,7 +70,7 @@ const VIEW_PRESETS = [
   { label: 'Reset tampilan', hint: '', apply: () => ({ ...DEFAULT_VIEW }) },
 ];
 
-export default function OfficeFloor({ scene, people, onlineIds, zone, selectedId, onSelect, onChat, meId, activity = {} }) {
+export default function OfficeFloor({ scene, people, onlineIds, zone, zoneNames = {}, selectedId, onSelect, onChat, meId, activity = {} }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const [size, setSize] = useState({ w: 900, h: 600 });
@@ -97,12 +97,86 @@ export default function OfficeFloor({ scene, people, onlineIds, zone, selectedId
   const pointers = useRef(new Map());
   const gesture = useRef(null);
 
+  // Animasi fokus kamera ke zona terpilih saat tombol filter zona diklik
+  const animRef = useRef(0);
+  const prevZoneRef = useRef(zone);
+  useEffect(() => {
+    if (prevZoneRef.current === zone) return;
+    prevZoneRef.current = zone;
+
+    cancelAnimationFrame(animRef.current);
+    if (!scene || !scene.seatPoints) return;
+
+    let targetView;
+    if (zone === 'all') {
+      targetView = { ...DEFAULT_VIEW };
+    } else {
+      let pts = Object.values(scene.seatPoints).filter((s) => s.zone === zone);
+      if (!pts.length && scene.labels) {
+        const lbl = scene.labels.find((l) => l.text && l.text.toUpperCase().includes(`ZONA ${zone}`));
+        if (lbl) pts = [{ x: lbl.x, y: lbl.y }];
+      }
+      if (!pts.length) return;
+
+      const minX = Math.min(...pts.map((p) => p.x));
+      const maxX = Math.max(...pts.map((p) => p.x));
+      const minY = Math.min(...pts.map((p) => p.y));
+      const maxY = Math.max(...pts.map((p) => p.y));
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+
+      const rz = DEFAULT_VIEW.rz;
+      const tilt = DEFAULT_VIEW.tilt;
+      const cR = Math.cos((rz * Math.PI) / 180);
+      const sR = Math.sin((rz * Math.PI) / 180);
+      const cT = Math.cos((tilt * Math.PI) / 180);
+      const fit = Math.min(size.w / 1350, size.h / 800);
+      const zoom = 1.45;
+      const Z = fit * zoom;
+      const dx = cx - FLOOR_W / 2;
+      const dy = cy - FLOOR_H / 2;
+
+      targetView = {
+        rz,
+        tilt,
+        zoom,
+        panX: -Z * (cR * dx - sR * dy),
+        panY: -Z * ((sR * dx + cR * dy) * cT),
+      };
+    }
+
+    const startView = { ...viewRef.current };
+    const startTime = performance.now();
+    const duration = 450;
+
+    const step = (t) => {
+      if (pointers.current.size > 0) return;
+      const progress = Math.min(1, (t - startTime) / duration);
+      const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+      setViewNow({
+        rz: startView.rz + (targetView.rz - startView.rz) * ease,
+        tilt: startView.tilt + (targetView.tilt - startView.tilt) * ease,
+        zoom: startView.zoom + (targetView.zoom - startView.zoom) * ease,
+        panX: startView.panX + (targetView.panX - startView.panX) * ease,
+        panY: startView.panY + (targetView.panY - startView.panY) * ease,
+      });
+
+      if (progress < 1) {
+        animRef.current = requestAnimationFrame(step);
+      }
+    };
+
+    animRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [zone, scene, size.w, size.h]);
+
   // ukuran stage mengikuti lebar kontainer
   useEffect(() => {
     const el = wrapRef.current;
     const ro = new ResizeObserver(([e]) => {
       const w = Math.round(e.contentRect.width);
-      setSize({ w, h: Math.round(clamp(w * 0.62, 380, 680)) });
+      setSize({ w, h: Math.round(clamp(w * 0.68, 420, 800)) });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -332,6 +406,7 @@ export default function OfficeFloor({ scene, people, onlineIds, zone, selectedId
         {placed.map(({ u, sx, sy, zone: z }) => {
           const st = effectiveStatus(u, onlineIds);
           const dim = zone !== 'all' && zone !== z;
+          const inZone = zone !== 'all' && zone === z;
           const bubble = bubbleOf(u, onlineIds);
           const act = activity[u.id];
           const b = bubbles[u.id] || null;
@@ -340,13 +415,16 @@ export default function OfficeFloor({ scene, people, onlineIds, zone, selectedId
           return (
             <div
               key={u.id}
-              className={`vo-person${dim ? ' is-dim' : ''}${st === 'offline' ? ' is-offline' : ''}${selectedId === u.id ? ' is-selected' : ''}`}
+              className={`vo-person${dim ? ' is-dim' : ''}${inZone ? ' is-zone-active' : ''}${st === 'offline' ? ' is-offline' : ''}${st === 'hadir' ? ' is-present-offline' : ''}${selectedId === u.id ? ' is-selected' : ''}`}
               style={{ left: sx, top: sy, '--fig-h': `${figH}px` }}
             >
               <button type="button" className="vo-person-hit" style={{ width: figW, height: figH }} onClick={toggle} aria-label={label} />
               <button type="button" className="vo-person-pop" onClick={toggle} tabIndex={-1} aria-hidden="true">
                 <Avatar user={u} status={st} size={40} />
-                <span className="vo-nametag">{u.id === meId ? `${u.name} (kamu)` : u.name}</span>
+                <span className="vo-nametag">
+                  {u.id === meId ? `${u.name} (kamu)` : u.name}
+                  {st === 'hadir' && <span className="vo-nametag-sub">Offline (Di kantor)</span>}
+                </span>
               </button>
               {b && (b.dx !== 0 || b.dy !== 0) && (
                 <svg className="vo-leader" width="1" height="1" aria-hidden="true">
@@ -384,8 +462,8 @@ export default function OfficeFloor({ scene, people, onlineIds, zone, selectedId
               <Avatar user={selected.u} status={effectiveStatus(selected.u, onlineIds)} size={52} />
               <div className="vo-card-title">
                 <strong>{selected.u.name}</strong>
-                <span>{[selected.u.employee?.job_level, selected.u.employee?.department || selected.u.division].filter(Boolean).join(' · ') || `Zona ${selected.zone}`}</span>
-                <span>Zona {selected.zone} · Meja {selected.u.seat_code}{selected.u.employee?.nik ? ` · NIK ${selected.u.employee.nik}` : ''}</span>
+                <span>{[selected.u.employee?.job_level, selected.u.employee?.department || selected.u.division].filter(Boolean).join(' · ') || (zoneNames[selected.zone] ? `${selected.zone} - ${zoneNames[selected.zone]}` : `Zona ${selected.zone}`)}</span>
+                <span>{zoneNames[selected.zone] ? `${selected.zone} (${zoneNames[selected.zone]})` : `Zona ${selected.zone}`} · Meja {selected.u.seat_code}{selected.u.employee?.nik ? ` · NIK ${selected.u.employee.nik}` : ''}</span>
               </div>
               <button type="button" className="vo-icon-btn" aria-label="Tutup" onClick={() => onSelect(null)}>
                 ×

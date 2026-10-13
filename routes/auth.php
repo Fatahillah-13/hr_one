@@ -5,6 +5,7 @@ use App\Http\Controllers\SsoController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\FirstLoginPasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -42,6 +43,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('first-login-password', [FirstLoginPasswordController::class, 'show'])
+        ->name('password.first_login');
+
+    Route::post('first-login-password', [FirstLoginPasswordController::class, 'update'])
+        ->name('password.first_login.update');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 
