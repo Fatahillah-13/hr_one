@@ -51,6 +51,9 @@ class AppManagementController extends Controller
                     if (preg_match('/^\s*(javascript|data|vbscript):/i', (string) $value)) {
                         $fail('Format link aplikasi tidak valid.');
                     }
+                    if (!filter_var($value, FILTER_VALIDATE_URL)) {
+                        $fail('Format link aplikasi tidak valid.');
+                    }
                 },
             ],
             'is_active' => 'nullable|boolean',
