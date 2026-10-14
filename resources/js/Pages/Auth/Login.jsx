@@ -95,6 +95,11 @@ export default function Login({ status }) {
                             className="group mt-1.5 flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-br from-[#5B7BFF] to-[#2F4BD8] px-4 py-3.5 text-[15px] font-extrabold text-white shadow-[0_16px_30px_-14px_rgba(47,75,216,.95)] transition hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-progress disabled:opacity-80 disabled:hover:translate-y-0">
                             {processing ? <><span className="h-4 w-4 animate-spin rounded-full border-[3px] border-white/40 border-t-white" />Memeriksa…</> : <>Login<Icon name="out" className="h-4 w-4 transition-transform group-hover:translate-x-1" /></>}
                         </button>
+                        <a href={route('login-sso')}
+                            className="mt-1 flex items-center justify-center gap-2.5 rounded-2xl border border-[#D9E0FF] bg-white px-4 py-3.5 text-[15px] font-extrabold text-[#2F4BD8] transition hover:-translate-y-0.5 hover:border-[#A9B9FF] hover:bg-[#F7F8FF] focus:outline-none focus:ring-4 focus:ring-[#4C6FFF]/15">
+                            <Icon name="shield" className="h-4 w-4" />
+                            Login with SSO
+                        </a>
                     </form>
                 </div>
 
