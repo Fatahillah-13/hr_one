@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AppLaunchController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Hrd\EmployeeController as HrdEmployeeController;
@@ -10,6 +11,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', DashboardController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+// Gerbang peluncuran aplikasi: cek akses, catat "terakhir dibuka", lalu redirect ke app_link.
+Route::get('/sso/launch/{app:slug}', AppLaunchController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('apps.launch');
 
 require __DIR__.'/settings.php';
 

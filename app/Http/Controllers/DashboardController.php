@@ -25,9 +25,10 @@ class DashboardController extends Controller
                 'slug' => $app->slug,
                 'description' => $app->description,
                 'icon' => $app->icon,
+                // Semua aplikasi dibuka lewat gerbang peluncur (cek akses + catat recent).
                 // Modul internal HR One (app_link diawali "/") dibuka di tab yang sama,
-                // aplikasi lain di tab baru.
-                'launch_url' => route('dashboard', $app->slug, absolute: ! $app->isInternalModule()),
+                // aplikasi lain di tab baru (URL absolut memicu window.open di frontend).
+                'launch_url' => route('apps.launch', $app->slug, absolute: ! $app->isInternalModule()),
                 'is_internal' => $app->isInternalModule(),
                 'divisions' => $app->divisions->map->only(['id', 'name', 'slug', 'sort_order'])->values(),
             ]);
