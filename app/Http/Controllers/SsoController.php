@@ -12,19 +12,34 @@ use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\ConnectionException;
+use GuzzleHttp\Exception\ConnectException;
+use Throwable;
 
 class SsoController extends Controller
 {
     // Mengirim user ke Keycloak
     public function redirect()
     {
+        if (!$this->keycloakReachable()) {
+            return $this->ssoError('unavailable');
+        }
+
         return Socialite::driver('keycloak')->redirect();
     }
 
     // Menerima user kembali dari Keycloak
     public function callback()
     {
-        $sso = Socialite::driver('keycloak')->user();
+        try {
+            $sso = Socialite::driver('keycloak')->user();
+        } catch (ConnectionException | ConnectException $e) {
+            report($e);
+            return $this->ssoError('unavailable');
+        } catch (Throwable $e) {
+            report($e);
+            return $this->ssoError('failed');
+        }
 
         // 1. Ambil data identitas dari token, sesuai pengaturan .env
         $value = $sso->user[config('sso.claim')] ?? null;
@@ -92,6 +107,27 @@ class SsoController extends Controller
         DB::table('sso_sessions')->where('sid', $claims->sid)->delete();
 
         return response()->noContent();
+    }
+
+    private function keycloakReachable(): bool
+    {
+        $url = rtrim(config('services.keycloak.base_url'), '/')
+            . '/realms/' . config('services.keycloak.realms')
+            . '/.well-known/openid-configuration';
+
+        try {
+            return Http::timeout(3)->connectTimeout(1)->get($url)->successful();
+        } catch (Throwable $e) {
+            report($e);
+            return false;
+        }
+    }
+
+    private function ssoError(string $reason)
+    {
+        return Inertia::render('Auth/SsoError', ['reason' => $reason])
+            ->toResponse(request())
+            ->setStatusCode(503);
     }
 
     private function validateLogoutToken(string $token): object
