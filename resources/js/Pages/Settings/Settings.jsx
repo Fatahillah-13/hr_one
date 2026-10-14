@@ -1,153 +1,80 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head } from "@inertiajs/react";
-import React, { useState, useRef, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useLayoutEffect, useRef, useState } from "react";
 import IndexUsermanagement from "./UserManagement/index";
 import AppIndexManagement from "./AppManagement/index";
+import DivisionManagement from "./DivisionManagement/index";
+import ItCallSettings from "./ItCall/index";
+import Icon from "@/Components/hr/Icon";
+import { PageHero, Panel } from "@/Components/hr/ui";
+import { cn } from "@/lib/utils";
 
-const HomeIcon = ({
-    className = "w-5 h-5"
-}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>;
+// Tab: Home (App Management), Categories (Divisions), Users, Messages, IT Call, Settings. ?tab=categories|users|messages|itcall|settings
+const TABS = [
+    { key: "home", title: "Home", icon: "home" },
+    { key: "categories", title: "Kategori Menu", icon: "grid" }, "|",
+    { key: "users", title: "Users", icon: "users" }, { key: "messages", title: "Messages", icon: "mail" }, { key: "itcall", title: "IT Call", icon: "headset" }, "|",
+    { key: "settings", title: "Settings", icon: "settings" },
+];
 
-const UserIcon = ({
-    className = "w-5 h-5"
-}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-    </svg>;
-
-const SettingsIcon = ({
-    className = "w-5 h-5"
-}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-        <circle cx="12" cy="12" r="3" />
-    </svg>;
-
-const MailIcon = ({
-    className = "w-5 h-5"
-}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-    </svg>;
-
-const spanVariants = {
-    initial: {
-        width: 0,
-        opacity: 0
-    },
-    animate: {
-        width: "auto",
-        opacity: 1,
-        transition: {
-            delay: 0.05,
-            duration: 0.2,
-            ease: "easeOut"
-        }
-    },
-    exit: {
-        width: 0,
-        opacity: 0,
-        transition: {
-            duration: 0.1,
-            ease: "easeIn"
-        }
-    }
-};
-
-function ExpandedTabs({ tabs, className, onChange }) {
-    const [selected, setSelected] = useState(0);
-    const containerRef = useRef(null);
-    const handleSelect = index => {
-        setSelected(index);
-        if (onChange) onChange(index);
-    };
-    const SeparatorComponent = () => <div className="h-7 w-px bg-slate-200 dark:bg-slate-700" aria-hidden="true" />;
-    return <div ref={containerRef} className={`flex items-center gap-1 rounded-xl border border-slate-200 bg-white/70 dark:bg-black dark:border-slate-700 p-1 shadow-md backdrop-blur-sm ${className || ""}`}>
-        {tabs.map((tab, index) => {
-            if (tab.type === "separator") {
-                return <SeparatorComponent key={index} />;
-            }
-            const Icon = tab.icon;
-            const isSelected = selected === index;
-            return <button key={tab.title} onClick={() => handleSelect(index)} className={`relative z-10 flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none
-            ${isSelected ? "text-slate-900 dark:text-green-300" : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100"}`}>
-                {isSelected && <motion.div layoutId="pill" className="absolute inset-0 z-0 rounded-lg bg-white dark:bg-green-500/20 backdrop-blur-sm border border-green-400/30 shadow-sm" transition={{
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 40
-                }} />}
-                <span className="relative z-10 flex items-center gap-2">
-                    <Icon className="h-5 w-5 flex-shrink-0" />
-                    <AnimatePresence initial={false}>
-                        {isSelected && <motion.span variants={spanVariants} initial="initial" animate="animate" exit="exit" className="overflow-hidden whitespace-nowrap">
-                            {tab.title}
-                        </motion.span>}
-                    </AnimatePresence>
-                </span>
-            </button>;
-        }
-        )}
-    </div>
+function ExpandedTabs({ active, onChange }) {
+    const bar = useRef(null);
+    const [pill, setPill] = useState({ x: 0, w: 0, ready: false });
+    useLayoutEffect(() => {
+        const el = bar.current?.querySelector(`[data-key="${active}"]`);
+        if (!el) return;
+        const t = setTimeout(() => setPill({ x: el.offsetLeft, w: el.offsetWidth, ready: true }), 30);
+        return () => clearTimeout(t);
+    }, [active]);
+    return (
+        <div ref={bar} role="tablist" className="hx-scroll-none relative flex w-max max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-[#E7EAF3] bg-white p-1.5 shadow-[0_1px_2px_rgba(12,26,75,.06),0_8px_24px_-12px_rgba(12,26,75,.18)]">
+            <span className={cn("absolute bottom-1.5 left-0 top-1.5 rounded-[11px] border border-[#C7D2FE] bg-[#EEF2FF]", pill.ready && "transition-[transform,width] [transition-duration:400ms] [transition-timing-function:cubic-bezier(.34,1.56,.64,1)]")}
+                style={{ transform: `translateX(${pill.x}px)`, width: pill.w }} />
+            {TABS.map((tab, i) => tab === "|" ? <span key={i} className="mx-1 h-[22px] w-px shrink-0 bg-[#E7EAF3]" aria-hidden="true" /> : (
+                <button key={tab.key} data-key={tab.key} type="button" role="tab" aria-selected={active === tab.key} onClick={() => onChange(tab.key)}
+                    className={cn("relative z-[1] inline-flex shrink-0 items-center rounded-[11px] px-3 py-2 text-sm font-bold transition-colors", active === tab.key ? "text-[#2F4BD8]" : "text-slate-500 hover:text-[#27272E]")}>
+                    <Icon name={tab.icon} className="h-[18px] w-[18px]" />
+                    <span className={cn("inline-block overflow-hidden whitespace-nowrap transition-all duration-300", active === tab.key ? "ml-2 max-w-[120px] opacity-100" : "ml-0 max-w-0 opacity-0")}>{tab.title}</span>
+                </button>
+            ))}
+        </div>
+    );
 }
 
-export default function Settings({ users, roles, divisions, apps }) {
-    const tabMap = { users: 2, messages: 3, settings: 5 };
-    const urlTab = new URLSearchParams(window.location.search).get('tab');
-    const [activeTab, setActiveTab] = useState(urlTab ? (tabMap[urlTab] ?? 0) : 0);
+function Placeholder({ icon, title }) {
+    return (
+        <Panel className="grid justify-items-center gap-2 px-5 py-12 text-center">
+            <span className="hx-blob relative grid h-[60px] w-[60px] place-items-center rounded-[18px] bg-[#EEF2FF] text-[#4C6FFF] [animation-duration:6s]"><Icon name={icon} className="h-7 w-7" /></span>
+            <h2 className="text-lg font-extrabold text-[#27272E]">{title}</h2>
+            <p className="max-w-md text-sm text-slate-500">Halaman ini masih kosong (placeholder). Tab tetap ada, siap diisi nanti.</p>
+        </Panel>
+    );
+}
 
-    const TABS = [{
-        title: "Home",
-        icon: HomeIcon
-    }, {
-        type: "separator"
-    },{
-        title: "Users",
-        icon: UserIcon
-    }, {
-        title: "Messages",
-        icon: MailIcon
-    }, {
-        type: "separator"
-    }, {
-        title: "Settings",
-        icon: SettingsIcon
-    }];
-
-    const renderTabContent = () => {
-        switch (activeTab) {
-            case 0:
-                return <AppIndexManagement apps={apps} />;
-            case 2:
-                return <IndexUsermanagement users={users} roles={roles} divisions={divisions} />;
-            case 3:
-                return <h1>Hello, Im in Messages Settings</h1>;
-            case 5:
-                return <h1>Hello, Im in App Settings</h1>;
-            default:
-                return <h1>Select a tab</h1>;
-        }
+export default function Settings({ users, roles, divisions, apps, itAgents, itUserOptions, itStatuses, itResetAt }) {
+    const urlTab = new URLSearchParams(window.location.search).get("tab");
+    const [activeTab, setActiveTab] = useState(["categories", "users", "messages", "itcall", "settings"].includes(urlTab) ? urlTab : "home");
+    const change = (key) => {
+        setActiveTab(key);
+        const u = new URL(window.location.href);
+        if (key === "home") u.searchParams.delete("tab"); else u.searchParams.set("tab", key);
+        u.searchParams.delete("page");
+        window.history.replaceState(window.history.state, "", u.toString());
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Settings
-                </h2>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Settings" />
-            <div className="mx-4 px-4 py-4 sm:mx-6 lg:mx-8">
-                <div className="justify-items-center">
-                    <div className="max-w-xs">
-                        <ExpandedTabs tabs={TABS} className="mb-4" onChange={setActiveTab} />
-                    </div>
-                </div>
-                <div className="bg-white my-4 px-4 py-4 rounded-lg">
-                    {renderTabContent()}
+            <PageHero icon="settings" title="Settings" subtitle="Kelola aplikasi, user, dan pengaturan HR One." crumbs={[{ label: "Dashboard", href: "/" }, { label: "Settings" }]} />
+            <div className="mx-auto grid max-w-[1240px] gap-4 px-4 py-5 sm:px-6">
+                <ExpandedTabs active={activeTab} onChange={change} />
+                <div key={activeTab} className="hx-up min-w-0">
+                    {activeTab === "home" && <AppIndexManagement apps={apps || []} />}
+                    {activeTab === "categories" && <DivisionManagement divisions={divisions || []} />}
+                    {activeTab === "users" && <IndexUsermanagement users={users} roles={roles} divisions={divisions} />}
+                    {activeTab === "messages" && <Placeholder icon="mail" title="Messages Settings" />}
+                    {activeTab === "itcall" && <ItCallSettings agents={itAgents || []} users={itUserOptions || []} statuses={itStatuses || {}} resetAt={itResetAt} />}
+                    {activeTab === "settings" && <Placeholder icon="settings" title="App Settings" />}
                 </div>
             </div>
         </AuthenticatedLayout>

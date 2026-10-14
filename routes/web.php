@@ -1,22 +1,21 @@
 <?php
 
+use App\Http\Controllers\AppLaunchController;
 use App\Http\Controllers\ProfileController;
-use App\Models\App;
-use App\Models\Division;
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Hrd\EmployeeController as HrdEmployeeController;
+use App\Http\Controllers\ItCallController;
+use App\Http\Controllers\SsoController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Dashboard', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-        'apps' => App::with('divisions')->get(),
-        'divisions' => Division::select('id', 'name', 'slug')->get(),
-    ]);
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/', DashboardController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
+
+// Gerbang peluncuran aplikasi: cek akses, catat "terakhir dibuka", lalu redirect ke app_link.
+Route::get('/sso/launch/{app:slug}', AppLaunchController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('sso.launch');
 
 require __DIR__.'/settings.php';
 
@@ -26,4 +25,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// ---- Modul HRD (membaca database sistem HRD lama) ----
+Route::middleware(['auth', 'app.access:'.config('hrd.employees_app_slug')])
+    ->prefix('hrd')
+    ->name('hrd.')
+    ->group(function () {
+        Route::get('/employees', [HrdEmployeeController::class, 'index'])->name('employees.index');
+        Route::get('/employees/{id}', [HrdEmployeeController::class, 'show'])->whereNumber('id')->name('employees.show');
+    });
+
 require __DIR__.'/auth.php';
+
+// ---- Virtual Office (chat & lantai kantor) ----
+require __DIR__.'/virtual-office.php';

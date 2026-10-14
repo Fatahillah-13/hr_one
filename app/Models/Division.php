@@ -9,6 +9,11 @@ class Division extends Model
     protected $fillable = [
         'name',
         'slug',
+        'sort_order',
+    ];
+
+    protected $casts = [
+        'sort_order' => 'integer',
     ];
 
     public function users()

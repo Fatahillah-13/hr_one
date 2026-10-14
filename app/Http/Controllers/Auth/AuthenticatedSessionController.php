@@ -33,6 +33,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $request->user()->forceFill(['last_login_at' => now()])->saveQuietly();
+
+        if ($request->user()->must_change_password) {
+            return redirect()->route('password.first_login');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

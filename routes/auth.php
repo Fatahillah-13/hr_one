@@ -5,10 +5,10 @@ use App\Http\Controllers\SsoController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\FirstLoginPasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,16 +18,16 @@ Route::middleware('guest')->group(function () {
 
     // Route::post('register', [RegisteredUserController::class, 'store']);
 
-    // Route::get('login', [AuthenticatedSessionController::class, 'create'])
-    //     ->name('login');
+    Route::get('login', [AuthenticatedSessionController::class, 'create'])
+        ->name('login');
+    Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::get('/auth/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
     Route::get('/auth/callback', [SsoController::class, 'callback']);
-    Route::get('/login', fn () => redirect()->route('sso.redirect'))->name('login');
+    Route::get('/login/sso', fn () => redirect()->route('sso.redirect'))->name('login-sso');
 
     Route::post('/auth/backchannel-logout', [SsoController::class, 'backchannel']);
 
-    // Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
@@ -43,6 +43,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('first-login-password', [FirstLoginPasswordController::class, 'show'])
+        ->name('password.first_login');
+
+    Route::post('first-login-password', [FirstLoginPasswordController::class, 'update'])
+        ->name('password.first_login.update');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

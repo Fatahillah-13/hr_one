@@ -1,0 +1,21 @@
+/* Popup pesan Virtual Office di semua halaman HR One (dipakai VoNotifier.jsx) */
+.vo-toasts { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 90; display: flex; flex-direction: column; gap: 10px; width: min(340px, calc(100vw - 32px)); }
+.vo-toast-card { position: relative; display: flex; align-items: stretch; background: #fff; border: 1px solid #E7EAF3; border-radius: 16px; box-shadow: 0 24px 48px -18px rgba(12,26,75,.45); overflow: hidden; animation: vo-toast-in .32s cubic-bezier(.22,1,.36,1) both; }
+.vo-toast-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(#4C6FFF, #8FA3FF); }
+.vo-toast-main { flex: 1; min-width: 0; display: flex; gap: 12px; align-items: flex-start; padding: 12px 8px 12px 16px; border: 0; background: none; cursor: pointer; text-align: left; font: inherit; color: #27272E; }
+.vo-toast-main:hover { background: #F7F8FC; }
+.vo-toast-main:focus-visible { outline: 3px solid #4C6FFF; outline-offset: -3px; }
+.vo-toast-avatar { width: 38px; height: 38px; flex: none; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 13px; }
+.vo-toast-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.vo-toast-text b { font-size: 14px; }
+.vo-toast-text small { font-size: 11.5px; color: #64748B; font-weight: 600; }
+.vo-toast-text span { font-size: 13px; color: #425466; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.vo-toast-x { width: 36px; flex: none; border: 0; background: none; color: #94A3B8; font-size: 20px; cursor: pointer; }
+.vo-toast-x:hover { color: #27272E; background: #F1F3F9; }
+@keyframes vo-toast-in { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .vo-toast-card { animation: none; } }
+
+/* badge jumlah pesan belum dibaca di header / menu HP */
+.vo-nav-badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #F43F5E; color: #fff; font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px #fff; }
+.vo-nav-badge.is-bump { animation: vo-bump .45s cubic-bezier(.3,1.6,.6,1); }
+@keyframes vo-bump { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }

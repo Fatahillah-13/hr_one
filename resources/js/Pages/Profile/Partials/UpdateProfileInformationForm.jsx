@@ -15,7 +15,6 @@ export default function UpdateProfileInformation({
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
             name: user.name,
-            email: user.email,
         });
 
     const submit = (e) => {
@@ -27,12 +26,12 @@ export default function UpdateProfileInformation({
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-[17px] font-extrabold text-[#27272E]">
                     Profile Information
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
-                    Update your account's profile information and email address.
+                <p className="mt-1 text-[13px] text-slate-500">
+                    Perbarui nama Anda. Username dan email dikelola oleh Admin HRD-IT.
                 </p>
             </header>
 
@@ -59,14 +58,11 @@ export default function UpdateProfileInformation({
                     <TextInput
                         id="email"
                         type="email"
-                        className="mt-1 block w-full"
-                        value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
-                        required
-                        autoComplete="username"
+                        className="mt-1 block w-full bg-gray-100 text-gray-500"
+                        value={user.email ?? ''}
+                        readOnly
+                        disabled
                     />
-
-                    <InputError className="mt-2" message={errors.email} />
                 </div>
 
                 {mustVerifyEmail && user.email_verified_at === null && (
@@ -102,8 +98,8 @@ export default function UpdateProfileInformation({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
-                            Saved.
+                        <p className="inline-flex items-center gap-1.5 text-sm font-bold text-green-700">
+                            ✓ Saved.
                         </p>
                     </Transition>
                 </div>

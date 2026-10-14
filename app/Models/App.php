@@ -12,6 +12,7 @@ class App extends Model
         'description',
         'icon',
         'app_link',
+        'is_active',
     ];
 
     protected function casts(): array
@@ -19,6 +20,12 @@ class App extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    /** Modul yang dibangun di dalam HR One sendiri (app_link berupa path, mis. "/hrd/employees"). */
+    public function isInternalModule(): bool
+    {
+        return str_starts_with((string) $this->app_link, '/');
     }
 
     public function divisions()

@@ -1,147 +1,44 @@
-import { useForm } from '@inertiajs/react'
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { useEffect, useState } from 'react'
+import { Button, Field, inputCls } from '@/Components/hr/ui'
 
-export default function Form({ user = null, roles = [], divisions = [], submitLabel = 'Simpan', onSubmit }) {
-    const { data, setData, processing, errors } = useForm({
-        name: user?.name ?? '',
-        username: user?.username ?? '',
-        email: user?.email ?? '',
-        password: '',
-        role_id: user?.role_id ?? '',
-        division_id: user?.division_id ?? '',
-        is_active: user?.is_active ?? true,
+// Form user (dipakai panel Tambah/Edit dan halaman Edit). Field sama seperti sebelumnya.
+export default function Form({ user = null, roles = [], divisions = [], submitLabel = 'Simpan', onSubmit, errors = {}, processing = false }) {
+    const initial = () => ({
+        name: user?.name ?? '', username: user?.username ?? '', email: user?.email ?? '', password: '',
+        role_id: user?.role_id ?? '', division_id: user?.division_id ?? '', is_active: user?.is_active ?? true,
     })
-
-    const submit = (e) => {
-        e.preventDefault()
-        onSubmit(data)
-    }
-
+    const [data, setDataState] = useState(initial)
+    useEffect(() => { setDataState(initial()) }, [user?.id])
+    const setData = (k, v) => setDataState((d) => ({ ...d, [k]: v }))
+    const submit = (e) => { e.preventDefault(); onSubmit(data) }
     return (
-        <form onSubmit={submit} className="space-y-4">
-            <div>
-                <Label>Nama</Label>
-                <Input
-                    type="text"
-                    value={data.name}
-                    onChange={(e) => setData('name', e.target.value)}
-                    className="w-full border rounded px-3 py-2"
-                />
-                {errors.name && <div className="text-red-500 text-sm">{errors.name}</div>}
+        <form onSubmit={submit} className="grid gap-4">
+            <Field label="Nama" htmlFor="u-name" error={errors.name}><input id="u-name" className={inputCls} value={data.name} onChange={(e) => setData('name', e.target.value)} autoFocus /></Field>
+            <Field label="Username" htmlFor="u-username" error={errors.username}><input id="u-username" className={inputCls} value={data.username} onChange={(e) => setData('username', e.target.value)} autoComplete="off" /></Field>
+            <Field label="Email" htmlFor="u-email" error={errors.email}><input id="u-email" type="email" className={inputCls} value={data.email} onChange={(e) => setData('email', e.target.value)} /></Field>
+            <Field label="Password" hint={user ? '(kosongkan jika tidak diubah)' : ''} htmlFor="u-pass" error={errors.password}>
+                <input id="u-pass" type="password" className={inputCls} value={data.password} onChange={(e) => setData('password', e.target.value)} autoComplete="new-password" />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Role" htmlFor="u-role" error={errors.role_id}>
+                    <select id="u-role" className={inputCls} value={String(data.role_id)} onChange={(e) => setData('role_id', e.target.value)}>
+                        <option value="">Pilih role</option>
+                        {roles.map((role) => <option key={role.id} value={String(role.id)}>{role.name}</option>)}
+                    </select>
+                </Field>
+                <Field label="Division" htmlFor="u-div" error={errors.division_id}>
+                    <select id="u-div" className={inputCls} value={String(data.division_id)} onChange={(e) => setData('division_id', e.target.value)}>
+                        <option value="">Pilih division</option>
+                        {divisions.map((d) => <option key={d.id} value={String(d.id)}>{d.name}</option>)}
+                    </select>
+                </Field>
             </div>
-
-            <div>
-                <Label>Username</Label>
-                <Input
-                    type="text"
-                    value={data.username}
-                    onChange={(e) => setData('username', e.target.value)}
-                    className="w-full border rounded px-3 py-2"
-                />
-                {errors.username && <div className="text-red-500 text-sm">{errors.username}</div>}
-            </div>
-
-            <div>
-                <Label>Email</Label>
-                <Input
-                    type="email"
-                    value={data.email}
-                    onChange={(e) => setData('email', e.target.value)}
-                    className="w-full border rounded px-3 py-2"
-                />
-                {errors.email && <div className="text-red-500 text-sm">{errors.email}</div>}
-            </div>
-
-            <div>
-                <Label>Password {user ? '(kosongkan jika tidak diubah)' : ''}</Label>
-                <Input
-                    type="password"
-                    value={data.password}
-                    onChange={(e) => setData('password', e.target.value)}
-                    className="w-full border rounded px-3 py-2"
-                />
-                {errors.password && <div className="text-red-500 text-sm">{errors.password}</div>}
-            </div>
-
-            <div>
-                <Label>Role</Label>
-                <Select
-                    value={String(data.role_id)}
-                    onValueChange={(value) => setData('role_id', value)}
-                >
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            {roles.map((role) => (
-                                <SelectItem key={role.id} value={String(role.id)}>
-                                    {role.name}
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
-                {errors.role_id && <div className="text-red-500 text-sm">{errors.role_id}</div>}
-            </div>
-
-            <div>
-                <Label>Division</Label>
-                <Select
-                    value={String(data.division_id)}
-                    onValueChange={(value) => setData('division_id', value)}
-                >
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih division" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            {divisions.map((division) => (
-                                <SelectItem key={division.id} value={String(division.id)}>
-                                    {division.name}
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
-                {errors.division_id && <div className="text-red-500 text-sm">{errors.division_id}</div>}
-            </div>
-
-            <div>
-                <Label>Status</Label>
-                <Select
-                    value={data.is_active ? '1' : '0'}
-                    onValueChange={(value) => setData('is_active', value === '1')}
-                >
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            <SelectItem value="1">Aktif</SelectItem>
-                            <SelectItem value="0">Nonaktif</SelectItem>
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <button
-                type="submit"
-                disabled={processing}
-                className="px-4 py-2 rounded bg-blue-600 text-white"
-            >
-                {submitLabel}
-            </button>
+            <Field label="Status" htmlFor="u-status" error={errors.is_active}>
+                <select id="u-status" className={inputCls} value={data.is_active ? '1' : '0'} onChange={(e) => setData('is_active', e.target.value === '1')}>
+                    <option value="1">Aktif</option><option value="0">Nonaktif</option>
+                </select>
+            </Field>
+            <Button type="submit" loading={processing} className="mt-1 w-full">{submitLabel}</Button>
         </form>
     )
 }
