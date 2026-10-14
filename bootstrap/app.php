@@ -30,7 +30,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['auth/backchannel-logout']);
 
     })
+
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function(AuthenticationException $e, Request $request) {
+            if ($request->header('X-Inertia')){
+                return Inertia::location(route('sso.redirect'));
+            }
+        });
+
         $exceptions->respond(function (Response $response) {
             if ($response->getStatusCode() === 419) {
                 return back()->with([

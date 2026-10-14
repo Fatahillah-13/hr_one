@@ -39,9 +39,25 @@ class SsoController extends Controller
         // 4. Login ke Laravel seperti biasa
         Auth::login($user);
 
+        $idToken = $sso->accessTokenResponseBody['id_token'] ?? null;
         session([
-            'id_token' => $sso->accessTokenResponseBody['id_token'] ?? null,
+            'id_token' => $idToken,
+            'refresh_token' => $sso->refreshToken,
+            'sso_checked_at'=> now()->timestamp,
         ]);
+
+        $payload = $idToken
+            ? json_decode(base64_decode(strtr(explode('.', $idToken)[1], '-_', '+/')), true)
+            : [];
+
+        if (!empty($payload['sid'])) {
+            DB::table('sso_sessions')->insert([
+                'sid'        => $payload['sid'],
+                'session_id' => session()->getId(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return redirect()->intended('/dashboard');
     }
