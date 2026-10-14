@@ -160,10 +160,6 @@ class AccessControlTest extends TestCase
             'name' => ucfirst($slug),
             'slug' => $slug,
             'app_link' => "http://10.10.100.193/{$slug}",
-            'sso_enabled' => true,
-            'sso_client_id' => "{$slug}-client",
-            'sso_redirect_uri' => "http://10.10.100.193/{$slug}/sso/callback",
-            'sso_client_secret_hash' => bcrypt('secret-123456'),
         ], $attributes));
 
         if (array_key_exists('is_active', $attributes)) {

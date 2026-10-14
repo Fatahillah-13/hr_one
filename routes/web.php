@@ -15,7 +15,7 @@ Route::get('/', DashboardController::class)
 // Gerbang peluncuran aplikasi: cek akses, catat "terakhir dibuka", lalu redirect ke app_link.
 Route::get('/sso/launch/{app:slug}', AppLaunchController::class)
     ->middleware(['auth', 'verified'])
-    ->name('apps.launch');
+    ->name('sso.launch');
 
 require __DIR__.'/settings.php';
 

@@ -5,8 +5,7 @@ import AppFormFields from './form-fields'
 
 export default function Create({ open, setOpen }) {
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
-        name: '', slug: '', description: '', icon: '', app_link: '', is_active: true,
-        sso_enabled: false, sso_client_id: '', sso_redirect_uri: '', sso_client_secret: '', division_ids: [],
+        name: '', slug: '', description: '', icon: '', app_link: '', is_active: true, division_ids: [],
     })
     const [slugTouched, setSlugTouched] = useState(false)
     const handleClose = () => { setOpen(false); reset(); clearErrors(); setSlugTouched(false) }

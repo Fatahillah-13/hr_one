@@ -5,9 +5,7 @@ import AppFormFields from './form-fields'
 
 const fromApp = (app) => ({
     name: app?.name || '', slug: app?.slug || '', description: app?.description || '', icon: app?.icon || '', app_link: app?.app_link || '',
-    is_active: Boolean(app?.is_active ?? true),
-    sso_enabled: Boolean(app?.sso_enabled), sso_client_id: app?.sso_client_id || '', sso_redirect_uri: app?.sso_redirect_uri || '',
-    sso_client_secret: '', division_ids: app?.divisions?.map((d) => d.id) || [],
+    is_active: Boolean(app?.is_active ?? true), division_ids: app?.divisions?.map((d) => d.id) || [],
 })
 
 export default function Edit({ open, setOpen, app }) {

@@ -59,7 +59,7 @@ class SettingsRedesignTest extends TestCase
         $hrd = Division::create(['name' => 'HRD Master', 'slug' => 'hrd']);
         $it = Division::create(['name' => 'IT', 'slug' => 'it']);
         // Aplikasi modul dibuat oleh migration modul HRD.
-        $module = App::firstOrCreate(['slug' => config('hrd.employees_app_slug')], ['name' => 'Master Karyawan', 'app_link' => '/hrd/employees', 'sso_enabled' => false]);
+        $module = App::firstOrCreate(['slug' => config('hrd.employees_app_slug')], ['name' => 'Master Karyawan', 'app_link' => '/hrd/employees']);
         $module->divisions()->sync([$hrd->id]);
 
         $hrdUser = User::factory()->create(['division_id' => $hrd->id]);
