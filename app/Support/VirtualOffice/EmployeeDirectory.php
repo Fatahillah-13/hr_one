@@ -61,6 +61,7 @@ class EmployeeDirectory
                     'department' => $e->department?->department,
                     'job_level' => $e->job?->job_level,
                     'bagian' => $e->bagian,
+                    'date_of_birth' => $e->date_of_birth ? (is_string($e->date_of_birth) ? substr($e->date_of_birth, 0, 10) : $e->date_of_birth->format('Y-m-d')) : null,
                     'photo_url' => self::photoUrl($cfg['photo_url'] ?? null, $e),
                 ];
             }

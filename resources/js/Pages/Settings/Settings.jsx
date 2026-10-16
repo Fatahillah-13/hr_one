@@ -4,15 +4,17 @@ import { useLayoutEffect, useRef, useState } from "react";
 import IndexUsermanagement from "./UserManagement/index";
 import AppIndexManagement from "./AppManagement/index";
 import DivisionManagement from "./DivisionManagement/index";
+import RoleManagement from "./RoleManagement/index";
 import ItCallSettings from "./ItCall/index";
 import Icon from "@/Components/hr/Icon";
 import { PageHero, Panel } from "@/Components/hr/ui";
 import { cn } from "@/lib/utils";
 
-// Tab: Home (App Management), Categories (Divisions), Users, Messages, IT Call, Settings. ?tab=categories|users|messages|itcall|settings
+// Tab: Home (App Management), Categories (Divisions), Roles, Users, Messages, IT Call, Settings. ?tab=categories|roles|users|messages|itcall|settings
 const TABS = [
     { key: "home", title: "Home", icon: "home" },
     { key: "categories", title: "Kategori Menu", icon: "grid" }, "|",
+    { key: "roles", title: "Roles", icon: "shield" },
     { key: "users", title: "Users", icon: "users" }, { key: "messages", title: "Messages", icon: "mail" }, { key: "itcall", title: "IT Call", icon: "headset" }, "|",
     { key: "settings", title: "Settings", icon: "settings" },
 ];
@@ -53,7 +55,7 @@ function Placeholder({ icon, title }) {
 
 export default function Settings({ users, roles, divisions, apps, itAgents, itUserOptions, itStatuses, itResetAt }) {
     const urlTab = new URLSearchParams(window.location.search).get("tab");
-    const [activeTab, setActiveTab] = useState(["categories", "users", "messages", "itcall", "settings"].includes(urlTab) ? urlTab : "home");
+    const [activeTab, setActiveTab] = useState(["categories", "roles", "users", "messages", "itcall", "settings"].includes(urlTab) ? urlTab : "home");
     const change = (key) => {
         setActiveTab(key);
         const u = new URL(window.location.href);
@@ -71,6 +73,7 @@ export default function Settings({ users, roles, divisions, apps, itAgents, itUs
                 <div key={activeTab} className="hx-up min-w-0">
                     {activeTab === "home" && <AppIndexManagement apps={apps || []} />}
                     {activeTab === "categories" && <DivisionManagement divisions={divisions || []} />}
+                    {activeTab === "roles" && <RoleManagement roles={roles || []} apps={apps || []} />}
                     {activeTab === "users" && <IndexUsermanagement users={users} roles={roles} divisions={divisions} />}
                     {activeTab === "messages" && <Placeholder icon="mail" title="Messages Settings" />}
                     {activeTab === "itcall" && <ItCallSettings agents={itAgents || []} users={itUserOptions || []} statuses={itStatuses || {}} resetAt={itResetAt} />}

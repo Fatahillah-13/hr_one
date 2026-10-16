@@ -8,6 +8,10 @@ export const api = {
   openPersonal: (userId) => axios.post(`${BASE}/conversations/personal/${userId}`).then((r) => r.data.conversation),
   createGroup: (name, memberIds) =>
     axios.post(`${BASE}/conversations/group`, { name, member_ids: memberIds }).then((r) => r.data.conversation),
+  addMembers: (conversationId, memberIds) =>
+    axios.post(`${BASE}/conversations/${conversationId}/members`, { member_ids: memberIds }).then((r) => r.data.conversation),
+  deleteGroup: (conversationId) =>
+    axios.delete(`${BASE}/conversations/${conversationId}`).then((r) => r.data),
   messages: (conversationId, beforeId) =>
     axios
       .get(`${BASE}/conversations/${conversationId}/messages`, { params: beforeId ? { before_id: beforeId } : {} })

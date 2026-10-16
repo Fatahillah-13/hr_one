@@ -27,8 +27,8 @@ export default function Form({ user = null, roles = [], divisions = [], submitLa
                     </select>
                 </Field>
                 <Field label="Division" htmlFor="u-div" error={errors.division_id}>
-                    <select id="u-div" className={inputCls} value={String(data.division_id)} onChange={(e) => setData('division_id', e.target.value)}>
-                        <option value="">Pilih division</option>
+                    <select id="u-div" className={inputCls} value={data.division_id === null || data.division_id === '' ? '' : String(data.division_id)} onChange={(e) => setData('division_id', e.target.value)}>
+                        <option value="">All (Semua Divisi)</option>
                         {divisions.map((d) => <option key={d.id} value={String(d.id)}>{d.name}</option>)}
                     </select>
                 </Field>

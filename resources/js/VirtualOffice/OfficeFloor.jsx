@@ -423,6 +423,7 @@ export default function OfficeFloor({ scene, people, onlineIds, zone, zoneNames 
                 <Avatar user={u} status={st} size={40} />
                 <span className="vo-nametag">
                   {u.id === meId ? `${u.name} (kamu)` : u.name}
+                  {u.is_birthday_today && <span title="Ulang tahun hari ini! 🎉"> 🎂</span>}
                   {st === 'hadir' && <span className="vo-nametag-sub">Offline (Di kantor)</span>}
                 </span>
               </button>
@@ -473,10 +474,31 @@ export default function OfficeFloor({ scene, people, onlineIds, zone, zoneNames 
               <span className="vo-dot" style={{ background: STATUS[effectiveStatus(selected.u, onlineIds)].ring }} />
               {STATUS[effectiveStatus(selected.u, onlineIds)].label}
             </div>
+            {selected.u.is_birthday_today ? (
+              <div style={{ background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: '#92400E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>🎉</span>
+                <span>Hari ini berulang tahun ke-{selected.u.birthday?.age || ''}! 🎂</span>
+              </div>
+            ) : selected.u.birthday?.birth_day_month ? (
+              <div style={{ fontSize: 12, color: 'var(--vo-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span>🎂</span>
+                <span>Ulang tahun: {selected.u.birthday.birth_day_month} {selected.u.birthday.days_left !== undefined && selected.u.birthday.days_left <= 30 ? (selected.u.birthday.days_left === 1 ? '(Besok!)' : `(${selected.u.birthday.days_left} hari lagi)`) : ''}</span>
+              </div>
+            ) : null}
             {bubbleOf(selected.u, onlineIds) && <div className="vo-card-bubble">“{bubbleOf(selected.u, onlineIds)}”</div>}
             {selected.u.id !== meId && (
-              <button type="button" className="vo-btn vo-btn-primary" onClick={() => onChat(selected.u.id)}>
-                Chat
+              <button
+                type="button"
+                className="vo-btn vo-btn-primary"
+                onClick={() => {
+                  if (selected.u.is_birthday_today) {
+                    onChat(selected.u.id, `Selamat ulang tahun, ${selected.u.name}! 🎂🎉 Semoga panjang umur, sehat selalu, dan semakin sukses!`);
+                  } else {
+                    onChat(selected.u.id);
+                  }
+                }}
+              >
+                {selected.u.is_birthday_today ? '🎉 Ucapkan Selamat Ultah' : 'Chat'}
               </button>
             )}
           </div>

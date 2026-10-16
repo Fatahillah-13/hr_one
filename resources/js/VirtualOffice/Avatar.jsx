@@ -88,7 +88,7 @@ function AvatarBase({ user, status = 'online', size = 44, ring = true, className
     filter: isOfflineLike ? 'grayscale(25%)' : 'none',
     transition: 'opacity .2s ease, filter .2s ease',
   };
-  return (
+  const avatarNode = (
     <span className={`vo-avatar ${isOfflineLike ? 'is-offline-avatar' : ''} ${className}`} style={style}>
       {p.avatar_mode === 'photo' && p.avatar_url ? (
         <img src={p.avatar_url} alt="" />
@@ -101,6 +101,34 @@ function AvatarBase({ user, status = 'online', size = 44, ring = true, className
       )}
     </span>
   );
+
+  if (user?.is_birthday_today) {
+    return (
+      <span className="vo-avatar-bday-wrap" style={{ position: 'relative', display: 'inline-flex', verticalAlign: 'middle' }}>
+        {avatarNode}
+        <span
+          className="vo-avatar-party-hat"
+          title="Hari ini berulang tahun! 🎉"
+          aria-label="Ulang tahun hari ini"
+          style={{
+            position: 'absolute',
+            top: -Math.round(size * 0.28),
+            right: -Math.round(size * 0.16),
+            fontSize: Math.round(size * 0.52),
+            lineHeight: 1,
+            pointerEvents: 'none',
+            zIndex: 3,
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+            animation: 'voBounce 2s ease-in-out infinite',
+          }}
+        >
+          🥳
+        </span>
+      </span>
+    );
+  }
+
+  return avatarNode;
 }
 
 // memo: puluhan avatar di lantai tidak perlu digambar ulang saat lantai diputar/digeser

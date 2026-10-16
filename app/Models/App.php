@@ -32,4 +32,14 @@ class App extends Model
     {
         return $this->belongsToMany(Division::class)->withTimestamps();
     }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class)->withTimestamps();
+    }
+
+    public function ssoLoginHandoffs()
+    {
+        return $this->hasMany(SsoLoginHandoff::class);
+    }
 }

@@ -14,14 +14,22 @@ function preview(m, meId) {
 }
 
 export default function ChatPanel({
-  me, usersById, onlineIds, conversations, activeId, onOpen, thread, onLoadMore, onSend, onCreateGroup, onActivity,
+  me, usersById, onlineIds, conversations, activeId, onOpen, thread, onLoadMore, onSend, onCreateGroup, onAddMembers, onDeleteGroup, onActivity, draftText, onDraftHandled,
 }) {
   const [tab, setTab] = useState('personal');
   const [text, setText] = useState('');
+
+  useEffect(() => {
+    if (draftText) {
+      setText(draftText);
+      onDraftHandled?.();
+    }
+  }, [draftText, onDraftHandled]);
   const [file, setFile] = useState(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [showGroup, setShowGroup] = useState(false);
+  const [showAddMembers, setShowAddMembers] = useState(false);
   const listRef = useRef(null);
   const fileRef = useRef(null);
   const { typing, notifyTyping } = useTyping(activeId, me.name);
@@ -91,9 +99,11 @@ export default function ChatPanel({
       <div className="vo-chat-top">
         <div className="vo-row">
           <h2>Chat</h2>
-          <button type="button" className="vo-btn vo-btn-ghost" onClick={() => setShowGroup(true)}>
-            + Grup baru
-          </button>
+          {me?.isAdmin && (
+            <button type="button" className="vo-btn vo-btn-ghost" onClick={() => setShowGroup(true)}>
+              + Grup baru
+            </button>
+          )}
         </div>
         <div className="vo-tabs" role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'personal'} onClick={() => setTab('personal')}>
@@ -148,7 +158,7 @@ export default function ChatPanel({
             ) : (
               <span className="vo-group-icon">{active.name.slice(0, 2).toUpperCase()}</span>
             )}
-            <div>
+            <div className="vo-thread-info">
               <strong>{active.name}</strong>
               <small>
                 {peer
@@ -156,6 +166,30 @@ export default function ChatPanel({
                   : `${active.members_count} anggota · ${active.member_ids.filter((id) => onlineIds.has(id)).length} online`}
               </small>
             </div>
+            {active.type === 'group' && me?.isAdmin && (
+              <div className="vo-thread-actions">
+                <button
+                  type="button"
+                  className="vo-btn vo-btn-ghost"
+                  title="Tambah Anggota"
+                  onClick={() => setShowAddMembers(true)}
+                >
+                  + Anggota
+                </button>
+                <button
+                  type="button"
+                  className="vo-btn vo-btn-ghost vo-btn-danger"
+                  title="Hapus Grup"
+                  onClick={() => {
+                    if (window.confirm(`Yakin ingin menghapus grup "${active.name}" secara permanen? Seluruh pesan dan lampiran akan terhapus.`)) {
+                      onDeleteGroup(active.id);
+                    }
+                  }}
+                >
+                  Hapus
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="vo-messages" ref={listRef}>
@@ -197,6 +231,42 @@ export default function ChatPanel({
             })}
             {typing && <p className="vo-typing">{typing} sedang mengetik…</p>}
           </div>
+
+          {peer?.is_birthday_today && (
+            <div
+              style={{
+                padding: '6px 12px',
+                background: 'linear-gradient(90deg, #FEF3C7, #FCE7F3)',
+                borderTop: '1px solid #FCD34D',
+                fontSize: 12,
+                color: '#92400E',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}
+            >
+              <span>🎂 Hari ini <strong>{peer.name}</strong> berulang tahun! 🎉</span>
+              <button
+                type="button"
+                className="vo-btn"
+                style={{
+                  padding: '2px 8px',
+                  fontSize: 11,
+                  background: '#F59E0B',
+                  borderColor: '#D97706',
+                  color: '#fff',
+                  fontWeight: 600,
+                  borderRadius: 6,
+                }}
+                onClick={() => {
+                  setText(`Selamat ulang tahun, ${peer.name}! 🎂🎉 Semoga panjang umur, sehat selalu, dan semakin sukses!`);
+                }}
+              >
+                Tulis Ucapan ✍️
+              </button>
+            </div>
+          )}
 
           <form className="vo-compose" onSubmit={submit}>
             {file && (
@@ -251,6 +321,17 @@ export default function ChatPanel({
           }}
         />
       )}
+      {showAddMembers && active && (
+        <AddMembersDialog
+          conversation={active}
+          usersById={usersById}
+          onClose={() => setShowAddMembers(false)}
+          onAdd={async (ids) => {
+            await onAddMembers(active.id, ids);
+            setShowAddMembers(false);
+          }}
+        />
+      )}
     </aside>
   );
 }
@@ -297,6 +378,69 @@ function GroupDialog({ me, usersById, onClose, onCreate }) {
             onClick={() => onCreate(name.trim(), picked).catch((e) => setError(e.message))}
           >
             Buat grup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddMembersDialog({ conversation, usersById, onClose, onAdd }) {
+  const [picked, setPicked] = useState([]);
+  const [q, setQ] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const existingMemberIds = new Set(conversation.member_ids || []);
+  const list = Object.values(usersById)
+    .filter((u) => !existingMemberIds.has(u.id) && u.name.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const toggle = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+
+  return (
+    <div className="vo-modal-backdrop" onClick={onClose}>
+      <div className="vo-modal" role="dialog" aria-label="Tambah anggota grup" onClick={(e) => e.stopPropagation()}>
+        <h3>Tambah Anggota Grup</h3>
+        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+          Grup: <strong>{conversation.name}</strong>
+        </p>
+        <label className="vo-field">
+          Pilih Karyawan ({picked.length} dipilih)
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama karyawan…" />
+        </label>
+        <div className="vo-pick-list">
+          {list.length === 0 ? (
+            <p className="vo-empty" style={{ padding: '16px 0' }}>Tidak ada karyawan baru yang dapat ditambahkan.</p>
+          ) : (
+            list.map((u) => (
+              <label key={u.id} className="vo-pick">
+                <input type="checkbox" checked={picked.includes(u.id)} onChange={() => toggle(u.id)} />
+                <Avatar user={u} ring={false} size={28} />
+                {u.name}
+              </label>
+            ))
+          )}
+        </div>
+        {error && <div className="vo-error">{error}</div>}
+        <div className="vo-row vo-modal-actions">
+          <button type="button" className="vo-btn" onClick={onClose} disabled={saving}>Batal</button>
+          <button
+            type="button"
+            className="vo-btn vo-btn-primary"
+            disabled={picked.length === 0 || saving}
+            onClick={async () => {
+              setSaving(true);
+              setError('');
+              try {
+                await onAdd(picked);
+              } catch (e) {
+                setError(e.message);
+                setSaving(false);
+              }
+            }}
+          >
+            {saving ? 'Menyimpan…' : `Tambahkan (${picked.length})`}
           </button>
         </div>
       </div>
