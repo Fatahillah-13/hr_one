@@ -45,7 +45,6 @@ export default function AppCard({ app = {}, title = "Nama App", division = "HRD"
             <span className="flex-1 text-[13.5px] leading-relaxed text-[#425466]">{description}</span>
             <span className="mt-1 flex flex-wrap gap-1.5">
                 {divisions.map((d) => <Badge key={d}>{d}</Badge>)}
-                {app.sso_enabled ? <Badge className="bg-emerald-50 text-emerald-700"><Icon name="shield" className="h-3 w-3" />SSO</Badge> : null}
             </span>
         </button>
     );

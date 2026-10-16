@@ -12,22 +12,22 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        // Hanya aplikasi yang boleh diakses user, dan hanya kolom yang aman
-        // untuk dikirim ke browser (tanpa sso_client_id / redirect_uri).
+        // Hanya aplikasi yang boleh diakses user, dan hanya kolom yang
+        // dibutuhkan frontend yang dikirim ke browser.
         $apps = $user->accessibleApps()
             ->with('divisions:id,name,slug,sort_order')
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'description', 'icon', 'app_link', 'sso_enabled'])
+            ->get(['id', 'name', 'slug', 'description', 'icon', 'app_link'])
             ->map(fn ($app) => [
                 'id' => $app->id,
                 'name' => $app->name,
                 'slug' => $app->slug,
                 'description' => $app->description,
                 'icon' => $app->icon,
-                'sso_enabled' => $app->sso_enabled,
+                // Semua aplikasi dibuka lewat gerbang peluncur (cek akses + catat recent).
                 // Modul internal HR One (app_link diawali "/") dibuka di tab yang sama,
-                // aplikasi lain di tab baru.
+                // aplikasi lain di tab baru (URL absolut memicu window.open di frontend).
                 'launch_url' => route('sso.launch', $app->slug, absolute: ! $app->isInternalModule()),
                 'is_internal' => $app->isInternalModule(),
                 'divisions' => $app->divisions->map->only(['id', 'name', 'slug', 'sort_order'])->values(),

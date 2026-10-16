@@ -33,15 +33,6 @@ export default function AppFormFields({ data, setData, errors, isEdit, slugTouch
                     label={data.is_active ? 'Status: Active (Enabled)' : 'Status: Inactive (Disabled)'}
                     description="Jika dinonaktifkan, aplikasi tidak akan tampil di kartu Beranda HR One untuk semua user." />
             </div>
-            <div className={cn('grid gap-3 rounded-2xl border p-4 transition-colors', data.sso_enabled ? 'border-emerald-200 bg-emerald-50/60' : 'border-[#E7EAF3] bg-[#FAFBFE]')}>
-                <Switch id={isEdit ? 'edit-sso-enabled' : 'create-sso-enabled'} checked={data.sso_enabled} onChange={(v) => setData('sso_enabled', v)}
-                    label="Enable SSO" description="Gunakan one-time code dan JWT exchange untuk aplikasi ini." />
-                <div className={cn('grid gap-3 overflow-hidden transition-all duration-300', data.sso_enabled ? 'max-h-[400px] opacity-100' : 'pointer-events-none max-h-0 opacity-40')}>
-                    <Field label="SSO Client ID" htmlFor="app-cid" error={errors.sso_client_id}><input id="app-cid" className={inputCls} value={data.sso_client_id} onChange={(e) => setData('sso_client_id', e.target.value)} placeholder="payroll-local" disabled={!data.sso_enabled} /></Field>
-                    <Field label="SSO Redirect URI" htmlFor="app-redir" error={errors.sso_redirect_uri}><input id="app-redir" type="url" className={inputCls} value={data.sso_redirect_uri} onChange={(e) => setData('sso_redirect_uri', e.target.value)} placeholder="http://localhost:8001/sso/callback" disabled={!data.sso_enabled} /></Field>
-                    <Field label="SSO Client Secret" htmlFor="app-secret" error={errors.sso_client_secret}><input id="app-secret" className={inputCls} value={data.sso_client_secret} onChange={(e) => setData('sso_client_secret', e.target.value)} placeholder={isEdit ? 'Kosongkan jika tidak diubah' : 'Minimal 12 karakter'} disabled={!data.sso_enabled} autoComplete="off" /></Field>
-                </div>
-            </div>
             <Field label="Divisions" error={errors.division_ids}>
                 <div className="flex flex-wrap gap-2">
                     {divisions.map((d) => {

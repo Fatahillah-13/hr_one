@@ -48,51 +48,29 @@ class AppManagementController extends Controller
                     if ($value === null || $value === '') {
                         return;
                     }
+                    // Modul internal HR One memakai path lokal, mis. "/hrd/employees".
+                    // Tolak "//host" (protocol-relative) agar tidak mengarah keluar domain.
+                    if (str_starts_with($value, '/') && ! str_starts_with($value, '//')) {
+                        return;
+                    }
                     if (preg_match('/^\s*(javascript|data|vbscript):/i', (string) $value)) {
+                        $fail('Format link aplikasi tidak valid.');
+                    }
+                    if (!filter_var($value, FILTER_VALIDATE_URL)) {
                         $fail('Format link aplikasi tidak valid.');
                     }
                 },
             ],
             'is_active' => 'nullable|boolean',
-            'sso_enabled' => 'nullable|boolean',
-            'sso_client_id' => [
-                Rule::requiredIf($request->boolean('sso_enabled')),
-                'nullable',
-                'string',
-                'max:255',
-                'unique:apps,sso_client_id',
-            ],
-            'sso_redirect_uri' => [
-                Rule::requiredIf($request->boolean('sso_enabled')),
-                'nullable',
-                'url',
-                'max:255',
-            ],
-            'sso_client_secret' => [
-                Rule::requiredIf($request->boolean('sso_enabled')),
-                'nullable',
-                'string',
-                'min:12',
-                'max:255',
-            ],
             'division_ids' => 'nullable|array',
             'division_ids.*' => 'exists:divisions,id',
         ]);
 
         $appAttributes = collect($validated)
-            ->except(['division_ids', 'sso_client_secret'])
+            ->except(['division_ids'])
             ->toArray();
 
         $appAttributes['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : true;
-
-        if ($validated['sso_enabled'] ?? false) {
-            $appAttributes['sso_client_secret_hash'] = Hash::make($validated['sso_client_secret']);
-        } else {
-            $appAttributes['sso_client_id'] = null;
-            $appAttributes['sso_redirect_uri'] = null;
-            $appAttributes['sso_client_secret_hash'] = null;
-        }
-
         $app = App::create($appAttributes);
         $app->divisions()->sync($validated['division_ids'] ?? []);
 
@@ -141,52 +119,30 @@ class AppManagementController extends Controller
                     if ($value === null || $value === '') {
                         return;
                     }
+                    // Modul internal HR One memakai path lokal, mis. "/hrd/employees".
+                    // Tolak "//host" (protocol-relative) agar tidak mengarah keluar domain.
+                    if (str_starts_with($value, '/') && ! str_starts_with($value, '//')) {
+                        return;
+                    }
                     if (preg_match('/^\s*(javascript|data|vbscript):/i', (string) $value)) {
+                        $fail('Format link aplikasi tidak valid.');
+                    }
+                    if (!filter_var($value, FILTER_VALIDATE_URL)) {
                         $fail('Format link aplikasi tidak valid.');
                     }
                 },
             ],
             'is_active' => 'nullable|boolean',
-            'sso_enabled' => 'nullable|boolean',
-            'sso_client_id' => [
-                Rule::requiredIf($request->boolean('sso_enabled')),
-                'nullable',
-                'string',
-                'max:255',
-                Rule::unique('apps', 'sso_client_id')->ignore($app->id),
-            ],
-            'sso_redirect_uri' => [
-                Rule::requiredIf($request->boolean('sso_enabled')),
-                'nullable',
-                'url',
-                'max:255',
-            ],
-            'sso_client_secret' => [
-                'nullable',
-                'string',
-                'min:12',
-                'max:255',
-            ],
             'division_ids' => 'nullable|array',
             'division_ids.*' => 'exists:divisions,id',
         ]);
 
         $appAttributes = collect($validated)
-            ->except(['division_ids', 'sso_client_secret'])
+            ->except(['division_ids'])
             ->toArray();
 
         if ($request->has('is_active')) {
             $appAttributes['is_active'] = $request->boolean('is_active');
-        }
-
-        if ($validated['sso_enabled'] ?? false) {
-            if (! empty($validated['sso_client_secret'])) {
-                $appAttributes['sso_client_secret_hash'] = Hash::make($validated['sso_client_secret']);
-            }
-        } else {
-            $appAttributes['sso_client_id'] = null;
-            $appAttributes['sso_redirect_uri'] = null;
-            $appAttributes['sso_client_secret_hash'] = null;
         }
 
         $app->update($appAttributes);

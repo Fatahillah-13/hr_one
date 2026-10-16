@@ -1,9 +1,10 @@
 <?php
 
+use App\Http\Controllers\AppLaunchController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Hrd\EmployeeController as HrdEmployeeController;
 use App\Http\Controllers\ItCallController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SsoController;
 use Illuminate\Support\Facades\Route;
 
@@ -11,16 +12,17 @@ Route::get('/', DashboardController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+// Gerbang peluncuran aplikasi: cek akses, catat "terakhir dibuka", lalu redirect ke app_link.
+Route::get('/sso/launch/{app:slug}', AppLaunchController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('sso.launch');
+
 require __DIR__.'/settings.php';
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::get('/sso/launch/{app:slug}', [SsoController::class, 'launch'])->name('sso.launch');
-
-    // IT Call: terbuka untuk semua user HR One.
-    Route::get('/it-call', [ItCallController::class, 'index'])->name('itcall.index');
-    Route::patch('/it-call/my-status', [ItCallController::class, 'updateMyStatus'])->name('itcall.my-status');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 // ---- Modul HRD (membaca database sistem HRD lama) ----

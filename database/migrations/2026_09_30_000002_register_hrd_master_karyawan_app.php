@@ -26,7 +26,6 @@ return new class extends Migration
             'app_link' => '/hrd/employees',
             'is_active' => true,
             'sort_order' => 0,
-            'sso_enabled' => false,
             'created_at' => now(),
             'updated_at' => now(),
         ]);

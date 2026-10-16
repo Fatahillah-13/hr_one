@@ -1,86 +1,154 @@
 <?php
-
+// app/Http/Controllers/SsoController.php
 namespace App\Http\Controllers;
 
-use App\Exceptions\SsoException;
-use App\Models\App;
-use App\Services\SsoLoginService;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Firebase\JWT\JWK;
+use Firebase\JWT\JWT;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\ConnectionException;
+use GuzzleHttp\Exception\ConnectException;
+use Throwable;
 
 class SsoController extends Controller
 {
-    public function __construct(
-        protected SsoLoginService $ssoLoginService,
-    ) {}
-
-    /**
-     * Satu pintu untuk membuka aplikasi dari dashboard.
-     * - Aplikasi SSO: buat handoff code lalu redirect ke callback aplikasi.
-     * - Aplikasi non-SSO: redirect ke app_link.
-     * Keduanya dicek hak aksesnya dan dicatat ke "recent apps".
-     */
-    public function launch(Request $request, App $app): RedirectResponse
+    // Mengirim user ke Keycloak
+    public function redirect()
     {
-        $user = $request->user();
-
-        if (! $app->sso_enabled) {
-            abort_unless($user->canAccessApp($app), 403, 'Anda tidak memiliki akses ke aplikasi ini.');
-            abort_unless($app->app_link, 404, 'Link aplikasi belum diatur.');
-
-            $user->recordAppOpened($app);
-
-            $target = $app->app_link;
-            if (! str_starts_with($target, '/') && ! preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//', $target)) {
-                if (preg_match('/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(:\d+)?/i', $target)) {
-                    $target = 'http://'.$target;
-                }
-            }
-
-            return redirect()->away($target);
+        if (!$this->keycloakReachable()) {
+            return $this->ssoError('unavailable');
         }
 
-        try {
-            $payload = $this->ssoLoginService->createLaunchPayload($app, $user, $request->ip());
-        } catch (SsoException $exception) {
-            abort($exception->status(), $exception->getMessage());
-        }
-
-        $user->recordAppOpened($app);
-
-        $separator = str_contains($app->sso_redirect_uri, '?') ? '&' : '?';
-        $targetUrl = $app->sso_redirect_uri.$separator.http_build_query([
-            'code' => $payload['code'],
-            'state' => $payload['state'],
-        ]);
-
-        return redirect()->away($targetUrl);
+        return Socialite::driver('keycloak')->redirect();
     }
 
-    public function exchange(Request $request): JsonResponse
+    // Menerima user kembali dari Keycloak
+    public function callback()
     {
-        $validated = $request->validate([
-            'client_id' => ['required', 'string', 'max:255'],
-            'client_secret' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:255'],
-            'state' => ['required', 'string', 'max:255'],
-        ]);
-
         try {
-            $response = $this->ssoLoginService->exchange(
-                $validated['client_id'],
-                $validated['client_secret'],
-                $validated['code'],
-                $validated['state'],
-                $request->ip(),
-            );
-        } catch (SsoException $exception) {
-            return response()->json([
-                'message' => $exception->getMessage(),
-            ], $exception->status());
+            $sso = Socialite::driver('keycloak')->user();
+        } catch (ConnectionException | ConnectException $e) {
+            report($e);
+            return $this->ssoError('unavailable');
+        } catch (Throwable $e) {
+            report($e);
+            return $this->ssoError('failed');
         }
 
-        return response()->json($response);
+        // 1. Ambil data identitas dari token, sesuai pengaturan .env
+        $value = $sso->user[config('sso.claim')] ?? null;
+        abort_if(!$value, 403, 'Data identitas tidak ditemukan di SSO.');
+
+        // 2. Cari user di tabel aplikasi ini
+        $user = User::where(config('sso.column'), $value)->where('is_active', true)->first();
+
+        // 3. Kalau tidak ada, tolak (lebih aman untuk data HR)
+        abort_if(!$user, 403, 'Akun Anda belum terdaftar di aplikasi ini.');
+
+        // 4. Login ke Laravel seperti biasa
+        Auth::login($user);
+        session()->regenerate();
+
+        $idToken = $sso->accessTokenResponseBody['id_token'] ?? null;
+        session([
+            'id_token' => $idToken,
+            'refresh_token' => $sso->refreshToken,
+            'sso_checked_at'=> now()->timestamp,
+        ]);
+
+        $payload = $idToken
+            ? json_decode(base64_decode(strtr(explode('.', $idToken)[1], '-_', '+/')), true)
+            : [];
+
+        if (!empty($payload['sid'])) {
+            DB::table('sso_sessions')->insert([
+                'sid'        => $payload['sid'],
+                'session_id' => session()->getId(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return redirect()->intended('/dashboard');
+    }
+
+    public function logout(Request $request)
+    {
+        $idToken = $request->session()->get('id_token');
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        $url = rtrim(config('services.keycloak.base_url'), '/')
+            . '/realms/' . config('services.keycloak.realms')
+            . '/protocol/openid-connect/logout?' . http_build_query([
+                'post_logout_redirect_uri' => url('/'),
+                'id_token_hint'            => $idToken,
+            ]);
+
+        return Inertia::location($url);
+    }
+
+    public function backchannel(Request $request)
+    {
+        $claims = $this->validateLogoutToken((string) $request->input('logout_token'));
+
+        $sessionIds = DB::table('sso_sessions')
+            ->where('sid', $claims->sid)
+            ->pluck('session_id');
+
+        DB::table('sessions')->whereIn('id', $sessionIds)->delete();
+        DB::table('sso_sessions')->where('sid', $claims->sid)->delete();
+
+        return response()->noContent();
+    }
+
+    private function keycloakReachable(): bool
+    {
+        $url = rtrim(config('services.keycloak.base_url'), '/')
+            . '/realms/' . config('services.keycloak.realms')
+            . '/.well-known/openid-configuration';
+
+        try {
+            return Http::timeout(3)->connectTimeout(1)->get($url)->successful();
+        } catch (Throwable $e) {
+            report($e);
+            return false;
+        }
+    }
+
+    private function ssoError(string $reason)
+    {
+        return Inertia::render('Auth/SsoError', ['reason' => $reason])
+            ->toResponse(request())
+            ->setStatusCode(503);
+    }
+
+    private function validateLogoutToken(string $token): object
+    {
+        $realmUrl = rtrim(config('services.keycloak.base_url'), '/')
+            . '/realms/' . config('services.keycloak.realms');
+
+        // Kunci publik Keycloak untuk memeriksa tanda tangan token
+        $jwks = Cache::remember('keycloak_jwks', 3600, fn () =>
+            Http::get($realmUrl . '/protocol/openid-connect/certs')->json()
+        );
+
+        $claims = JWT::decode($token, JWK::parseKeySet($jwks)); // gagal = exception
+
+        abort_if($claims->iss !== $realmUrl, 400);
+        abort_if(!in_array(config('services.keycloak.client_id'), (array) $claims->aud, true), 400);
+        abort_if(!isset($claims->events->{'http://schemas.openid.net/event/backchannel-logout'}), 400);
+        abort_if(isset($claims->nonce), 400);   // logout token tidak boleh punya nonce
+        abort_if(empty($claims->sid), 400);
+
+        return $claims;
     }
 }

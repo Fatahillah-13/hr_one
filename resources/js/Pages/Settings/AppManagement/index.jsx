@@ -40,7 +40,7 @@ export default function AppManagement({ apps = [] }) {
             <div className="overflow-x-auto border-t border-[#E7EAF3]">
                 <table className="w-full text-left text-[13.5px]">
                     <thead><tr className="bg-[#FAFBFE] text-[11px] font-extrabold uppercase tracking-[.08em] text-slate-500">
-                        <th className="px-5 py-3">Name</th><th className="px-4 py-3">Division</th><th className="px-4 py-3">URL</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">SSO</th><th className="px-5 py-3 text-right">Actions</th>
+                        <th className="px-5 py-3">Name</th><th className="px-4 py-3">Division</th><th className="px-4 py-3">URL</th><th className="px-4 py-3">Status</th><th className="px-5 py-3 text-right">Actions</th>
                     </tr></thead>
                     <tbody>
                         {apps.map((app, i) => (
@@ -63,7 +63,6 @@ export default function AppManagement({ apps = [] }) {
                                         )}
                                     </button>
                                 </td>
-                                <td className="px-4 py-3">{app.sso_enabled ? (<div><Pill tone="green" dot>Enabled</Pill><div className="mt-1 font-mono text-[11px] text-slate-500">{app.sso_client_id}</div></div>) : <Pill tone="gray">Disabled</Pill>}</td>
                                 <td className="px-5 py-3 text-right"><div className="flex justify-end">
                                     <RowMenu label={`Menu ${app.name}`} items={[
                                         {
@@ -77,7 +76,7 @@ export default function AppManagement({ apps = [] }) {
                                 </div></td>
                             </tr>
                         ))}
-                        {apps.length === 0 && <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-500">Belum ada aplikasi.</td></tr>}
+                        {apps.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-500">Belum ada aplikasi.</td></tr>}
                     </tbody>
                 </table>
             </div>

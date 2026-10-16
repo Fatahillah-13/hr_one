@@ -13,7 +13,6 @@ export default function HeaderSearch({ value = "", onChange, onSubmit, placehold
     const [now, setNow] = useState(new Date());
     useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
     const firstName = String(user?.name || "").split(" ")[0];
-    const sso = apps.filter((a) => a.sso_enabled).length;
 
     return (
         <section className="hx-gradient relative z-20 w-full text-white">
@@ -40,7 +39,6 @@ export default function HeaderSearch({ value = "", onChange, onSubmit, placehold
                 </div>
                 <div className="hx-up mt-5 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[13.5px] text-white/90 [animation-delay:.26s]">
                     <span><b className="mr-1 text-[17px] font-extrabold"><CountUp value={apps.length} /></b> aplikasi</span>
-                    <span><b className="mr-1 text-[17px] font-extrabold"><CountUp value={sso} /></b> terhubung SSO</span>
                     <span><b className="mr-1 text-[17px] font-extrabold"><CountUp value={divisions.length} /></b> divisi</span>
                 </div>
             </div>
