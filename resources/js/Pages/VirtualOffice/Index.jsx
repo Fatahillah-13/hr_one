@@ -5,6 +5,7 @@ import ChatPanel from '../../VirtualOffice/ChatPanel';
 import StatusDialog from '../../VirtualOffice/StatusDialog';
 import AvatarDialog from '../../VirtualOffice/AvatarDialog';
 import Avatar from '../../VirtualOffice/Avatar';
+import BirthdayModal from '../../VirtualOffice/BirthdayModal';
 import { buildScene } from '../../VirtualOffice/scene';
 import { useRealtime } from '../../VirtualOffice/useRealtime';
 import { BASE, api, errorText } from '../../VirtualOffice/api';
@@ -13,7 +14,14 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import '../../../css/virtual-office.css';
 
 // Halaman Virtual Office di dalam layout HR One (header, menu HP, notifikasi global).
-export default function VirtualOfficeIndex({ me, users: initialUsers, seats, objects = [], canEdit = false }) {
+export default function VirtualOfficeIndex({
+  me,
+  users: initialUsers,
+  seats,
+  objects = [],
+  canEdit = false,
+  birthdays = { today: [], this_month: [], upcoming: [], month_name: '' },
+}) {
   const [users, setUsers] = useState(initialUsers);
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -21,7 +29,8 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
   const [selectedId, setSelectedId] = useState(null);
   const [zone, setZone] = useState('all');
   const [search, setSearch] = useState('');
-  const [dialog, setDialog] = useState(null); // 'status' | 'avatar'
+  const [dialog, setDialog] = useState(null); // 'status' | 'avatar' | 'birthday'
+  const [draftChatText, setDraftChatText] = useState('');
   const [toast, setToast] = useState('');
   const activeRef = useRef(activeId);
   activeRef.current = activeId;
@@ -36,7 +45,7 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
     });
   }, [initialUsers]);
   const usersById = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u])), [users]);
-  const meUser = usersById[me.id] || { ...me, profile: {} };
+  const meUser = { ...(usersById[me.id] || {}), ...me, profile: usersById[me.id]?.profile || {} };
   const zones = useMemo(() => [...new Set(seats.map((s) => s.zone))].sort(), [seats]);
 
   // Petakan kode zona (A, B, C...) ke nama label zona dari objek denah (zone_label)
@@ -160,8 +169,11 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
     }
   };
 
-  const chatWith = async (userId) => {
+  const chatWith = async (userId, draftText = null) => {
     try {
+      if (draftText) {
+        setDraftChatText(draftText);
+      }
       const c = await api.openPersonal(userId);
       setConversations((cs) => (cs.some((x) => x.id === c.id) ? cs : [c, ...cs]));
       setSelectedId(null);
@@ -177,6 +189,30 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
       setConversations((cs) => [c, ...cs]);
       openConversation(c.id);
     } catch (e) {
+      throw new Error(errorText(e));
+    }
+  };
+
+  const addMembersToGroup = async (conversationId, ids) => {
+    try {
+      const updated = await api.addMembers(conversationId, ids);
+      setConversations((cs) => cs.map((c) => (c.id === conversationId ? updated : c)));
+      flash('Anggota berhasil ditambahkan ke grup.');
+    } catch (e) {
+      throw new Error(errorText(e));
+    }
+  };
+
+  const deleteGroup = async (conversationId) => {
+    try {
+      await api.deleteGroup(conversationId);
+      setConversations((cs) => cs.filter((c) => c.id !== conversationId));
+      if (activeRef.current === conversationId) {
+        setActiveId(null);
+      }
+      flash('Grup obrolan berhasil dihapus.');
+    } catch (e) {
+      flash(errorText(e));
       throw new Error(errorText(e));
     }
   };
@@ -355,7 +391,36 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
       <main className="vo-main">
         <section className="vo-floor-card">
           <div className="vo-floor-top">
-            <h1>Lantai HRD</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h1>Lantai HRD</h1>
+              <button
+                type="button"
+                className={`vo-btn vo-bday-badge-btn ${birthdays?.today?.length ? 'is-celebrating' : ''}`}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 99,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: birthdays?.today?.length ? 'linear-gradient(135deg, #FEF3C7 0%, #FCE7F3 100%)' : 'var(--vo-soft)',
+                  border: birthdays?.today?.length ? '1.5px solid #F59E0B' : '1px solid var(--vo-line-2)',
+                  color: birthdays?.today?.length ? '#B45309' : 'var(--vo-text)',
+                  cursor: 'pointer',
+                  boxShadow: birthdays?.today?.length ? '0 2px 8px rgba(245, 158, 11, 0.25)' : 'none',
+                }}
+                onClick={() => setDialog('birthday')}
+                title="Lihat pengingat & jadwal ulang tahun karyawan"
+              >
+                <span>🎂</span>
+                <span>
+                  {birthdays?.today?.length
+                    ? `🎉 ${birthdays.today.length} Ultah Hari Ini!`
+                    : `Ultah Bulan Ini (${birthdays?.this_month?.length || 0})`}
+                </span>
+              </button>
+            </div>
             <div className="vo-chips" role="group" aria-label="Filter zona">
               {['all', ...zones].map((z) => {
                 const label = z === 'all' ? 'Semua' : (zoneNames[z] ? `${z} - ${zoneNames[z]}` : `Zona ${z}`);
@@ -367,6 +432,69 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
               })}
             </div>
           </div>
+
+          {birthdays?.today && birthdays.today.length > 0 && (
+            <div
+              className="vo-bday-banner"
+              style={{
+                margin: '10px 16px 0',
+                padding: '10px 14px',
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, rgba(254, 243, 199, 0.95), rgba(252, 231, 243, 0.95), rgba(238, 242, 255, 0.95))',
+                border: '1.5px solid #FCD34D',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8,
+                boxShadow: '0 3px 10px rgba(245, 158, 11, 0.12)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 24 }}>🥳</span>
+                <div>
+                  <strong style={{ fontSize: 13, color: '#92400E' }}>
+                    Selamat Ulang Tahun Hari Ini! 🎉
+                  </strong>
+                  <div style={{ fontSize: 12, color: '#78350F' }}>
+                    {birthdays.today.map((u) => u.name).join(', ')} sedang berulang tahun. Ucapkan selamat! 🎂
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {birthdays.today.length === 1 && birthdays.today[0].user_id !== me.id && (
+                  <button
+                    type="button"
+                    className="vo-btn vo-btn-primary"
+                    style={{
+                      background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                      borderColor: 'transparent',
+                      color: '#fff',
+                      fontSize: 12,
+                      padding: '4px 12px',
+                      fontWeight: 700,
+                    }}
+                    onClick={() => {
+                      chatWith(
+                        birthdays.today[0].user_id,
+                        `Selamat ulang tahun, ${birthdays.today[0].name}! 🎂🎉 Semoga panjang umur, sehat selalu, dan semakin sukses!`
+                      );
+                    }}
+                  >
+                    🎉 Kirim Ucapan
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="vo-btn"
+                  style={{ fontSize: 12, padding: '4px 10px', background: 'rgba(255,255,255,0.85)' }}
+                  onClick={() => setDialog('birthday')}
+                >
+                  Lihat Detail 🎂
+                </button>
+              </div>
+            </div>
+          )}
           <OfficeFloor
             scene={scene}
             people={visibleUsers}
@@ -392,6 +520,10 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
           onLoadMore={loadMore}
           onSend={send}
           onCreateGroup={createGroup}
+          onAddMembers={addMembersToGroup}
+          onDeleteGroup={deleteGroup}
+          draftText={draftChatText}
+          onDraftHandled={() => setDraftChatText('')}
           onActivity={(kind, active) => {
             notifyActivity(kind, active);
             setUserActivity(me.id, kind, active);
@@ -399,6 +531,21 @@ export default function VirtualOfficeIndex({ me, users: initialUsers, seats, obj
         />
       </main>
 
+      {dialog === 'birthday' && (
+        <BirthdayModal
+          birthdays={birthdays}
+          usersById={visibleById}
+          onlineIds={onlineIds}
+          meId={me.id}
+          onClose={() => setDialog(null)}
+          onWish={(userId, userName) => {
+            chatWith(
+              userId,
+              `Selamat ulang tahun, ${userName}! 🎂🎉 Semoga sehat selalu, panjang umur, dan semakin sukses!`
+            );
+          }}
+        />
+      )}
       {dialog === 'status' && <StatusDialog me={meUser} onClose={() => setDialog(null)} onSaved={updateMyProfile} />}
       {dialog === 'avatar' && <AvatarDialog me={meUser} onClose={() => setDialog(null)} onSaved={updateMyProfile} />}
       {toast && <div className="vo-toast" role="status">{toast}</div>}

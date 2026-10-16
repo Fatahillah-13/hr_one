@@ -45,7 +45,7 @@ export default function FirstLoginResetPassword({ user }) {
     return (
         <div className="relative isolate grid min-h-screen place-items-center overflow-hidden px-4 py-7 font-sans"
             style={{ background: 'radial-gradient(120% 90% at 0% 0%, #5B7BFF 0%, #2F4BD8 45%, #1C2870 100%)' }}>
-            <Head title="Reset Password Pertama Kali" />
+            <Head title="Pembaruan Kata Sandi Akun" />
             <span className="pointer-events-none absolute inset-0 opacity-[.13] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:22px_22px]" />
             <span className="hx-blob -right-32 -top-44 h-[460px] w-[460px] bg-[radial-gradient(circle,rgba(255,255,255,.22),transparent_70%)]" />
             <span className="hx-blob -bottom-40 -left-28 h-[340px] w-[340px] bg-[radial-gradient(circle,rgba(143,163,255,.55),transparent_70%)] [animation-delay:-4s]" />
@@ -57,13 +57,13 @@ export default function FirstLoginResetPassword({ user }) {
                     <div className="hx-up [animation-delay:.08s]">
                         <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 border border-amber-200">
                             <Icon name="shield" className="h-3.5 w-3.5" />
-                            Aktivasi & Keamanan Akun
+                            Pembaruan Keamanan Akun
                         </div>
                         <h1 className="mt-2 text-xl font-extrabold tracking-tight text-[#27272E] sm:text-2xl">
                             Buat Password Baru
                         </h1>
                         <p className="mt-1 text-sm text-slate-500">
-                            Halo <strong>{user?.name || user?.username}</strong>, ini adalah login pertama kali Anda. Demi keamanan akun, silakan perbarui password Anda sebelum melanjutkan.
+                            Halo <strong>{user?.name || user?.username}</strong>, demi keamanan dan sinkronisasi akun HR One ke seluruh sistem, silakan buat password baru Anda sebelum melanjutkan.
                         </p>
                     </div>
 

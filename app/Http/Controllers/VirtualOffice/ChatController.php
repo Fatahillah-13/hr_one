@@ -20,12 +20,26 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ChatController extends Controller
 {
-    /** Daftar percakapan milik user (personal + grup), terbaru di atas. */
+    /** Daftar percakapan milik user (personal + grup), terbaru di atas.
+     * Khusus Administrator: melihat semua grup yang ada.
+     */
     public function index(Request $request): JsonResponse
     {
-        $me = $request->user()->id;
+        $user = $request->user();
+        $me = $user->id;
+        $isAdmin = VoAccess::isAdmin($user);
 
-        $list = Conversation::whereHas('members', fn ($q) => $q->where('users.id', $me))
+        $query = Conversation::query();
+        if ($isAdmin) {
+            $query->where(function ($q) use ($me) {
+                $q->where('type', 'group')
+                  ->orWhereHas('members', fn ($mq) => $mq->where('users.id', $me));
+            });
+        } else {
+            $query->whereHas('members', fn ($q) => $q->where('users.id', $me));
+        }
+
+        $list = $query
             ->with(['members:users.id,users.name', 'lastMessage.user:id,name'])
             ->get()
             ->map(fn ($c) => ConversationPresenter::summary($c, $me))
@@ -55,15 +69,18 @@ class ChatController extends Controller
         return response()->json(['conversation' => ConversationPresenter::summary($conversation->fresh(), $me)]);
     }
 
-    /** Buat grup baru. Pembuat otomatis jadi admin. */
+    /** Buat grup baru. Hanya Administrator yang diperbolehkan. */
     public function storeGroup(Request $request): JsonResponse
     {
+        $user = $request->user();
+        abort_unless(VoAccess::isAdmin($user), 403, 'Hanya Administrator yang memiliki akses untuk membuat grup baru.');
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:60'],
             'member_ids' => ['required', 'array', 'min:1'],
             'member_ids.*' => ['integer', 'exists:users,id'],
         ]);
-        $me = $request->user()->id;
+        $me = $user->id;
         // hanya karyawan aktif yang punya akses Virtual Office
         $data['member_ids'] = VoAccess::members()->whereKey($data['member_ids'])->pluck('id')->all();
         abort_if(! array_diff($data['member_ids'], [$me]), 422, 'Pilih minimal satu anggota yang bisa memakai Virtual Office.');
@@ -84,6 +101,55 @@ class ChatController extends Controller
         }
 
         return response()->json(['conversation' => ConversationPresenter::summary($conversation, $me)]);
+    }
+
+    /** Tambah anggota ke grup. Hanya Administrator yang diperbolehkan. */
+    public function addMembers(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless(VoAccess::isAdmin($user), 403, 'Hanya Administrator yang memiliki akses untuk mengelola anggota grup.');
+        abort_if($conversation->type !== 'group', 422, 'Hanya percakapan grup yang bisa ditambah anggota.');
+
+        $data = $request->validate([
+            'member_ids' => ['required', 'array', 'min:1'],
+            'member_ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $validIds = VoAccess::members()->whereKey($data['member_ids'])->pluck('id')->all();
+        $existingIds = $conversation->members()->pluck('users.id')->all();
+        $newIds = array_diff($validIds, $existingIds);
+
+        abort_if(empty($newIds), 422, 'Semua user yang dipilih sudah menjadi anggota grup ini.');
+
+        $attachData = collect($newIds)->mapWithKeys(fn ($id) => [$id => ['is_admin' => false]])->all();
+        $conversation->members()->attach($attachData);
+
+        $conversation->load('members:users.id,users.name');
+        foreach ($newIds as $newId) {
+            Realtime::send(new ConversationCreated($conversation, $newId));
+        }
+
+        return response()->json(['conversation' => ConversationPresenter::summary($conversation->fresh(), $user->id)]);
+    }
+
+    /** Hapus grup beserta seluruh pesan dan lampirannya. Hanya Administrator yang diperbolehkan. */
+    public function destroyGroup(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless(VoAccess::isAdmin($user), 403, 'Hanya Administrator yang memiliki akses untuk menghapus grup.');
+        abort_if($conversation->type !== 'group', 422, 'Hanya percakapan grup yang bisa dihapus.');
+
+        // Hapus file attachment dari disk
+        $attachmentPaths = $conversation->messages()->whereNotNull('attachment_path')->pluck('attachment_path')->all();
+        foreach ($attachmentPaths as $path) {
+            if ($path && Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
+            }
+        }
+
+        $conversation->delete();
+
+        return response()->json(['ok' => true, 'id' => $conversation->id]);
     }
 
     /** Riwayat pesan, 40 per halaman. ?before_id=123 untuk memuat pesan lebih lama. */
@@ -133,7 +199,14 @@ class ChatController extends Controller
         // pengirim otomatis dianggap sudah membaca pesannya sendiri
         $conversation->members()->updateExistingPivot($request->user()->id, ['last_read_message_id' => $message->id]);
 
-        Realtime::send(new MessageSent($message, $conversation->members()->pluck('users.id')->all()));
+        // kirim realtime ke semua anggota + administrator jika grup
+        $targetUserIds = $conversation->members()->pluck('users.id');
+        if ($conversation->type === 'group') {
+            $adminIds = User::whereHas('role', fn ($q) => $q->where('name', 'Admin'))->pluck('id');
+            $targetUserIds = $targetUserIds->merge($adminIds)->unique();
+        }
+
+        Realtime::send(new MessageSent($message, $targetUserIds->values()->all()));
 
         return response()->json(['message' => $message->toPublic()]);
     }
@@ -145,7 +218,9 @@ class ChatController extends Controller
 
         $lastId = (int) $conversation->messages()->max('id');
         if ($lastId) {
-            $conversation->members()->updateExistingPivot($request->user()->id, ['last_read_message_id' => $lastId]);
+            if ($conversation->hasMember($request->user()->id)) {
+                $conversation->members()->updateExistingPivot($request->user()->id, ['last_read_message_id' => $lastId]);
+            }
             Realtime::send(new ConversationRead(
                 $conversation->id,
                 $request->user()->id,
@@ -175,6 +250,11 @@ class ChatController extends Controller
 
     private function authorizeMember(Request $request, Conversation $conversation): void
     {
-        abort_unless($conversation->hasMember($request->user()->id), 403);
+        $user = $request->user();
+        if ($conversation->type === 'group' && VoAccess::isAdmin($user)) {
+            return;
+        }
+
+        abort_unless($conversation->hasMember($user->id), 403);
     }
 }

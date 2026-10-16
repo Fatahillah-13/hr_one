@@ -168,8 +168,12 @@
 .vo-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--vo-teal); color: #fff; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; }
 .vo-group-icon { width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--vo-teal); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
 .vo-thread-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--vo-line-2); }
-.vo-thread-head div { display: flex; flex-direction: column; min-width: 0; }
+.vo-thread-head .vo-thread-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .vo-thread-head small { color: var(--vo-muted); font-size: 12px; }
+.vo-thread-actions { display: flex !important; flex-direction: row !important; align-items: center; gap: 6px; margin-left: auto; }
+.vo-thread-actions .vo-btn { font-size: 11px; padding: 4px 8px; border-radius: 6px; }
+.vo-btn-danger { color: #dc2626 !important; }
+.vo-btn-danger:hover { background: #fee2e2 !important; }
 .vo-messages { flex: 1; min-height: 200px; overflow: auto; padding: 14px 16px; background: var(--vo-soft); display: flex; flex-direction: column; gap: 10px; }
 .vo-more { align-self: center; }
 .vo-msg { align-self: flex-start; max-width: 82%; display: flex; flex-direction: column; gap: 3px; }
@@ -282,4 +286,19 @@
 .vo-ed-diff { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 @media (max-width: 1100px) {
   .vo-ed-side, .vo-ed-props { max-width: none; max-height: none; }
+}
+
+/* ================= Birthday Feature ================= */
+@keyframes voBounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(8deg); }
+}
+
+.vo-bday-badge-btn.is-celebrating {
+  animation: voPulse 2s infinite ease-in-out;
+}
+
+@keyframes voPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
 }

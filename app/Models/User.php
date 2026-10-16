@@ -23,6 +23,7 @@ class User extends Authenticatable
         'username',
         'name',
         'email',
+        'birth_date',
         'avatar',
         'role_id',
         'division_id',
@@ -51,11 +52,22 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'birth_date' => 'date:Y-m-d',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (User $user) {
+            // Jika kolom password baru saja diubah / diupdate, sinkronkan ke database aplikasi lokal
+            if ($user->wasChanged('password')) {
+                \App\Services\PasswordSyncService::sync($user, $user->password);
+            }
+        });
     }
 
     public function role()
@@ -76,17 +88,31 @@ class User extends Authenticatable
     /**
      * Aplikasi yang boleh dibuka user ini.
      * - Admin: semua aplikasi aktif.
-     * - User lain: hanya aplikasi aktif yang terdaftar untuk divisinya.
-     * - User tanpa divisi: tidak ada aplikasi.
+     * - Jika role user memiliki daftar aplikasi yang dipilih secara spesifik:
+     *     Gunakan aplikasi aktif yang diizinkan untuk rolenya (difilter divisi jika diset).
+     * - User tanpa divisi (All): semua aplikasi aktif (atau sesuai izin role jika dikonfigurasi).
+     * - User dengan divisi: aplikasi aktif yang terdaftar untuk divisinya + virtual-office.
      */
     public function accessibleApps(): Builder
     {
         return App::query()
             ->where('is_active', true)
             ->when(! $this->isAdmin(), function (Builder $query) {
-                $query->whereHas('divisions', function (Builder $divisions) {
-                    $divisions->where('divisions.id', $this->division_id);
-                });
+                // Jika role user memiliki konfigurasi aplikasi khusus (role centang aplikasi)
+                if ($this->role && $this->role->apps()->exists()) {
+                    $query->whereHas('roles', function (Builder $roles) {
+                        $roles->where('roles.id', $this->role_id);
+                    });
+                }
+
+                if ($this->division_id) {
+                    $query->where(function (Builder $q) {
+                        $q->where('slug', 'virtual-office')
+                          ->orWhereHas('divisions', function (Builder $divisions) {
+                              $divisions->where('divisions.id', $this->division_id);
+                          });
+                    });
+                }
             });
     }
 

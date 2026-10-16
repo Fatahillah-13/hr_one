@@ -3,6 +3,7 @@
 use App\Http\Controllers\AppManagementController;
 use App\Http\Controllers\DivisionManagementController;
 use App\Http\Controllers\ItAgentController;
+use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('settings/apps', AppManagementController::class)->names('settings.apps');
     Route::post('settings/divisions/reorder', [DivisionManagementController::class, 'reorder'])->name('settings.divisions.reorder');
     Route::resource('settings/divisions', DivisionManagementController::class)->only(['store', 'update', 'destroy'])->names('settings.divisions');
+
+    // Settings > Roles: Manajemen Role User (CRUD).
+    Route::resource('settings/roles', RoleManagementController::class)->only(['store', 'update', 'destroy'])->names('settings.roles');
 
     // Settings > IT Call: agent & nomor WhatsApp.
     Route::resource('settings/it-agents', ItAgentController::class)->only(['store', 'update', 'destroy'])->names('settings.it-agents');

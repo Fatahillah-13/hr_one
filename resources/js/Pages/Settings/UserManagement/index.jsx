@@ -56,7 +56,7 @@ export default function Index({ users, roles = [], divisions = [] }) {
                                 <td className="px-4 py-3 font-mono text-[12.5px] text-[#425466]">{user.username}</td>
                                 <td className="px-4 py-3 text-[#425466]">{user.email}</td>
                                 <td className="px-4 py-3">{user.role ? <Pill tone={user.role.name === 'Admin' ? 'blue' : 'gray'}>{user.role.name}</Pill> : '-'}</td>
-                                <td className="px-4 py-3 text-[#425466]">{user.division?.name ?? '-'}</td>
+                                <td className="px-4 py-3 text-[#425466]">{user.division?.name ?? 'All'}</td>
                                 <td className="px-4 py-3"><Pill tone={user.is_active ? 'green' : 'gray'} dot>{user.is_active ? 'Aktif' : 'Nonaktif'}</Pill></td>
                                 <td className="px-5 py-3"><div className="flex justify-end">
                                     <RowMenu label={`Menu ${user.name}`} items={[

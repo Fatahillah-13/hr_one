@@ -28,22 +28,18 @@ class VoAccess
             || in_array(strtolower((string) ($user->username ?? '')), $admins, true);
     }
 
-    /** Boleh membuka Virtual Office: sama dengan aturan kartu aplikasi di Beranda HR One. */
+    /** Boleh membuka Virtual Office: semua user yang aktif boleh akses. */
     public static function canUse(?Authenticatable $user): bool
     {
         if (! $user) {
             return false;
         }
-        if (! class_exists(App::class) || ! method_exists($user, 'canAccessApp')) {
-            return true;
-        }
-        $app = self::app();
 
-        return $app ? $user->canAccessApp($app) : false;
+        return (bool) ($user->is_active ?? true);
     }
 
     /**
-     * Semua karyawan yang boleh memakai Virtual Office (aktif + admin atau divisinya diberi akses).
+     * Semua karyawan aktif untuk Virtual Office.
      * Dipakai untuk lantai, daftar chat, dan pilihan karyawan di Editor Denah.
      */
     public static function members(): Builder
@@ -52,20 +48,8 @@ class VoAccess
         if (Schema::hasColumn('users', 'is_active')) {
             $q->where('is_active', true);
         }
-        if (! class_exists(App::class) || ! method_exists(User::class, 'canAccessApp')) {
-            return $q;
-        }
 
-        $app = self::app();
-        if (! $app || ! $app->is_active) {
-            return $q->whereRaw('1 = 0');
-        }
-        $divisionIds = $app->divisions()->pluck('divisions.id')->all();
-
-        return $q->where(function (Builder $w) use ($divisionIds) {
-            $w->whereIn('division_id', $divisionIds ?: [0])
-                ->orWhereHas('role', fn (Builder $r) => $r->where('name', Role::ADMIN));
-        });
+        return $q;
     }
 
     /** Baris aplikasi Virtual Office di tabel apps (di-cache per request). */
